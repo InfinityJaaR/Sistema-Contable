@@ -24,6 +24,23 @@ body {
     position: relative;
     overflow: hidden;
 }
+#div{
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.logo-container {
+    text-align: center;
+    margin-bottom: 0;
+}
+
+.logo {
+    filter: drop-shadow(0 0 10px rgba(0, 0, 0, .4));
+    max-width: 150px;
+    height: auto;
+}
 
 .wrapper {
     position: relative;
