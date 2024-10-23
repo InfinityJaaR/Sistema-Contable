@@ -1,16 +1,19 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="stylesheet" type="text/css" href="{% static 'css/nav.css' %}">
+    <script src="{% static 'js/nav.js' %}"></script>
     {% block head %}
-     
+    
     {% endblock %}
-    <link rel="stylesheet" href="../static/css/nav.css">
+    
 </head>
 <body>
     <div class="container">
         <nav id="sidebar" class="sidebar">
             <button class="toggle-btn" onclick="toggleSidebar()">☰</button>
-            <a href="#home" class="nav-link">
+            <a href="{% url 'home' %}" class="nav-link">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
                     <polyline points="9 22 9 12 15 12 15 22"></polyline>
@@ -65,6 +68,6 @@
     {% block scripts %} 
     
     {% endblock %}
-    <script src="../static/js/nav.js"></script>
+    
 </body>
 </html>
