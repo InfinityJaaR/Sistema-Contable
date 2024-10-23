@@ -50,8 +50,9 @@ class CuentaContable(models.Model):
         ('ACTIVO', 'Activo'), 
         ('PASIVO', 'Pasivo'),
         ('PATRIMONIO', 'Patrimonio'),
-        ('GASTOS Y COSTOS', 'Gastos y Costos'),
         ('INGRESOS', 'Ingresos'),
+        ('COSTOS', 'Costos'),
+        ('GASTOS', 'Gastos'),
         ('C. DE CIERRE', 'C. de cierre')])   # Activo, Pasivo, Patrimonio, etc.
     cuenta_padre = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, related_name='subcuentas')
 
