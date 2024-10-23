@@ -11,12 +11,12 @@ from .models import CuentaContable, Transaccion
 def home(request):
     return render(request, 'home.html')
 
-
+@login_required
 def gestionarTransacciones(request):
     transacciones = Transaccion.objects.all()
     return render(request, 'gestionarTransacciones.html', {'transacciones': transacciones})
 
-
+@login_required
 def registrarTransaccion(request):
     cuentas = CuentaContable.objects.all()
     if request.method == 'POST':

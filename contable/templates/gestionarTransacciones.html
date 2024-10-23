@@ -1,13 +1,15 @@
-<!DOCTYPE html>
-<html lang="es">
+{% extends 'nav.html' %}
+{% load static %}
 <head>
+    {% block head %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestionar Transacción</title>
-    <link rel="icon" href="../../static/img/logo2.png" type="image/jpeg">
+    <link rel="icon" href="{% static 'img/logo2.png' %}" type="image/jpeg">
     <script src="https://cdn.tailwindcss.com"></script> <!-- Cargando Tailwind CSS -->
+    {% endblock %}
 </head>
-<body class="bg-gray-100">
+{% block content %}
 
     <!-- Contenedor principal -->
     <div class="max-w-6xl mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
@@ -39,12 +41,12 @@
                             <td class="px-6 py-4 whitespace-nowrap">{{ transaccion.monto_total }}</td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <a href="/verdetalles/{{ transaccion.id }}" class="p-2">
-                                    <img src="../../static/img/detalles.png" alt="Detalles" class="h-5 w-5 border-2 border-green-500 rounded-md">
+                                    <img src="{% static 'img/detalles.png' %}" alt="Detalles" class="h-5 w-5 border-2 border-green-500 rounded-md">
                                 </a>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <a href="/detalletransaccion/{{ transaccion.id }}" class="p-2">
-                                    <img src="../../static/img/pencil.png" alt="Editar" class="h-5 w-5 border-2 border-blue-300 rounded-md">
+                                    <img src="{% static 'img/pencil.png' %}" alt="Editar" class="h-5 w-5 border-2 border-blue-300 rounded-md">
                                 </a>
                             </td>
                         </tr>
@@ -53,5 +55,6 @@
             </table>
         </div>
     </div>
+    {% endblock %}
 </body>
 </html>

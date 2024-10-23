@@ -1,14 +1,17 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends 'nav.html' %}
+{% load static %}
+
 <head>
+    {% block head %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registrar | Transaccion</title>
-    <link rel="icon" href="../../static/img/logo2.png" type="image/jpeg">
+    <link rel="icon" href="{% static 'img/logo2.png' %}" type="image/jpeg">
     <script src="https://cdn.tailwindcss.com"></script> <!-- Cargando Tailwind CSS -->
+    {% endblock %}
 </head>
-<body class="bg-gray-100">
 
+{% block content %}
     <!-- Formulario de registrar transacción -->
     <div class="max-w-4xl mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
         <h1 class="text-2xl font-bold mb-6">Registrar Transacción</h1>
@@ -74,7 +77,10 @@
             </div>
         </form>
     </div>
+{% endblock %}
 
+
+{% block scripts %}
     <script>
         // Lógica para añadir filas a la tabla
         document.getElementById('add-row').addEventListener('click', function() {
@@ -99,6 +105,4 @@
             document.getElementById('haber').value = '';
         });
     </script>
-
-</body>
-</html>
+{% endblock %}
