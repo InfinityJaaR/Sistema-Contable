@@ -10,11 +10,11 @@ from django.contrib.auth.decorators import login_required
 def home(request):
     return render(request, 'home.html')
 
-
+@login_required
 def gestionarTransacciones(request):
     return render(request, 'gestionarTransacciones.html')
 
-
+@login_required
 def registrarTransaccion(request):
     if request.method == 'POST':
         # Lógica para guardar la transacción en la base de datos
