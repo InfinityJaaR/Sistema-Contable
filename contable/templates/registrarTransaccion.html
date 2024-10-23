@@ -27,9 +27,9 @@
             <div class="mb-4">
                 <label for="codigo_cuenta" class="block text-gray-700">Código de Cuenta:</label>
                 <select id="codigo_cuenta" name="codigo_cuenta" required class="w-full p-2 border border-gray-300 rounded-md">
-                    <option value="1101">1101 - Efectivo</option>
-                    <option value="5001">5001 - Venta</option>
-                    <option value="2107">2107 - IVA Débito</option>
+                    {% for cuenta in cuentas %}
+                        <option value="{{ cuenta.codigo_cuenta }}">{{ cuenta.codigo_cuenta }} - {{ cuenta.nombre_cuenta }}</option>
+                    {% endfor %}
                 </select>
             </div>
 
