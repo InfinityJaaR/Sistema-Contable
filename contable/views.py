@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
-from .models import CuentaContable
+from .models import CuentaContable, Transaccion
 # Create your views here.
 
 # def login(request):
@@ -13,7 +13,8 @@ def home(request):
 
 
 def gestionarTransacciones(request):
-    return render(request, 'gestionarTransacciones.html')
+    transacciones = Transaccion.objects.all()
+    return render(request, 'gestionarTransacciones.html', {'transacciones': transacciones})
 
 
 def registrarTransaccion(request):

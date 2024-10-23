@@ -19,93 +19,39 @@
 
         <!-- Tabla de transacciones -->
         <div class="overflow-x-auto">
-            <table id="transactionTable" class="min-w-full bg-white rounded-lg shadow-md border border-gray-200">
+            <table id="transactionTable" class="min-w-full bg-white rounded-lg shadow-md border border-black">
                 <thead class="bg-blue-500 text-white">
                     <tr>
-                        <th class="px-4 py-2">No.</th>
-                        <th class="px-4 py-2">Fecha</th>
-                        <th class="px-4 py-2">Descripción</th>
-                        <th class="px-4 py-2">Monto</th>
-                        <th class="px-4 py-2">Consultar/Editar</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">ID</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Fecha</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Descripción</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Monto</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Ver Detalles</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Editar</th>
                     </tr>
                 </thead>
                 <tbody id="transactionBody" class="bg-white divide-y divide-gray-200">
-                    <!-- Las filas serán generadas dinámicamente con JavaScript -->
+                    {% for transaccion in transacciones %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">{{ transaccion.id }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">{{ transaccion.fecha }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">{{ transaccion.descripcion }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">{{ transaccion.monto_total }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <a href="/verdetalles/{{ transaccion.id }}" class="p-2">
+                                    <img src="../../static/img/detalles.png" alt="Detalles" class="h-5 w-5 border-2 border-green-500 rounded-md">
+                                </a>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <a href="/detalletransaccion/{{ transaccion.id }}" class="p-2">
+                                    <img src="../../static/img/pencil.png" alt="Editar" class="h-5 w-5 border-2 border-blue-300 rounded-md">
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
-
-    <script>
-        // Datos de ejemplo simulando una base de datos
-        const transactions = [
-            { id: 1, fecha: '10/10/2024', descripcion: 'Venta de', monto: 1500 },
-            { id: 2, fecha: '15/10/2024', descripcion: 'Compra de', monto: 100 },
-            { id: 3, fecha: '20/10/2024', descripcion: 'Venta de', monto: 350 },
-            { id: 4, fecha: '25/10/2024', descripcion: 'Venta de', monto: 500 }
-        ];
-
-        // Función para generar las filas de la tabla
-        function generateTableRows() {
-            const tableBody = document.getElementById('transactionBody');
-            transactions.forEach(transaction => {
-                // Crear una nueva fila
-                const row = document.createElement('tr');
-
-                // Columna No.
-                const cellNo = document.createElement('td');
-                cellNo.className = 'border px-4 py-2 text-center';
-                cellNo.textContent = transaction.id;
-                row.appendChild(cellNo);
-
-                // Columna Fecha
-                const cellFecha = document.createElement('td');
-                cellFecha.className = 'border px-4 py-2 text-center';
-                cellFecha.textContent = transaction.fecha;
-                row.appendChild(cellFecha);
-
-                // Columna Descripción
-                const cellDescripcion = document.createElement('td');
-                cellDescripcion.className = 'border px-4 py-2 text-left';
-                cellDescripcion.textContent = transaction.descripcion;
-                row.appendChild(cellDescripcion);
-
-                // Columna Monto
-                const cellMonto = document.createElement('td');
-                cellMonto.className = 'border px-4 py-2 text-right';
-                cellMonto.textContent = `$${transaction.monto}`;
-                row.appendChild(cellMonto);
-
-                // Columna Consultar/Editar
-                const cellAction = document.createElement('td');
-                cellAction.className = 'border px-4 py-2 text-center';
-
-                // Crear botón con ícono de lápiz
-                const editButton = document.createElement('button');
-                editButton.className = 'bg-blue-500 text-white p-2 rounded-full hover:bg-blue-600 focus:outline-none';
-                const editIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                editIcon.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-                editIcon.setAttribute('class', 'h-5 w-5');
-                editIcon.setAttribute('viewBox', '0 0 20 20');
-                editIcon.setAttribute('fill', 'currentColor');
-                editIcon.innerHTML = '<path d="M17.414 2.586a2 2 0 010 2.828l-10 10a2 2 0 01-.707.414l-4 1a1 1 0 01-1.26-1.26l1-4a2 2 0 01.414-.707l10-10a2 2 0 012.828 0zM15 3L5 13v1h1l10-10L15 3z"/>';
-                editButton.appendChild(editIcon);
-
-                // Agregar enlace al botón
-                const editLink = document.createElement('a');
-                editLink.href = `/detalletransaccion/${transaction.id}`;
-                editLink.appendChild(editButton);
-
-                cellAction.appendChild(editLink);
-                row.appendChild(cellAction);
-
-                // Agregar la fila al cuerpo de la tabla
-                tableBody.appendChild(row);
-            });
-        }
-
-        // Generar las filas al cargar la página
-        window.onload = generateTableRows;
-    </script>
 </body>
 </html>
