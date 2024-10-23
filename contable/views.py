@@ -43,12 +43,30 @@ def asignarPeriodo(request):
 
 @login_required
 def asignarAsiento(request):
-    # Lógica para asignar asiento contable
-    asientos = AsientoContable.objects.all()
+    periodos = PeriodoContable.objects.all()
     if request.method == 'POST':
-        # Procesar el formulario
-        pass
-    return render(request, 'asignarAsiento.html', {'asientos': asientos})
+        fecha = request.POST.get('fecha')
+        descripcion = request.POST.get('descripcion')
+        periodo_id = request.POST.get('periodo')
+
+        # Validar que todos los campos sean proporcionados
+        if not fecha or not descripcion or not periodo_id:
+            messages.error(request, 'Todos los campos son obligatorios.')
+            return redirect('asignar_asiento')
+
+        # Validar que el período contable exista
+        try:
+            periodo = PeriodoContable.objects.get(id=periodo_id)
+        except PeriodoContable.DoesNotExist:
+            messages.error(request, 'El período contable seleccionado no existe.')
+            return redirect('asignar_asiento')
+
+        # Crear el asiento contable
+        AsientoContable.objects.create(fecha=fecha, descripcion=descripcion, periodo=periodo)
+        messages.success(request, 'Asiento contable guardado exitosamente.')
+        return redirect('gestionar_transacciones')
+
+    return render(request, 'asignarAsiento.html', {'periodos': periodos})
 
 @login_required
 def registrarTransaccion(request):

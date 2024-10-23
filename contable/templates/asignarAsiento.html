@@ -1,0 +1,81 @@
+{% extends 'nav.html' %}
+{% load static %}
+
+{% block head %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asignar Asiento Contable</title>
+    <link rel="icon" href="{% static 'img/logo2.png' %}" type="image/jpeg">
+    <script src="https://cdn.tailwindcss.com"></script> <!-- Cargando Tailwind CSS -->
+</head>
+{% endblock %}
+
+{% block content %}
+<div class="flex flex-col items-center justify-center min-h-screen bg-gray-100">
+    <!-- Mostrar mensajes de éxito o error -->
+    {% if messages %}
+    <div class="mb-4">
+        {% for message in messages %}
+            {% if 'success' in message.tags %}
+                <p class="bg-green-100 text-green-700 p-4 mb-4 text-sm rounded-lg">
+                    {{ message }}
+                </p>
+            {% elif 'error' in message.tags %}
+                <p class="bg-red-100 text-red-700 p-4 mb-4 text-sm rounded-lg">
+                    {{ message }}
+                </p>
+            {% elif 'warning' in message.tags %}
+                <p class="bg-yellow-100 text-yellow-700 p-4 mb-4 text-sm rounded-lg">
+                    {{ message }}
+                </p>
+            {% elif 'info' in message.tags %}
+                <p class="bg-blue-100 text-blue-700 p-4 mb-4 text-sm rounded-lg">
+                    {{ message }}
+                </p>
+            {% else %}
+                <p class="bg-gray-100 text-gray-700 p-4 mb-4 text-sm rounded-lg">
+                    {{ message }}
+                </p>
+            {% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
+    <div class="bg-white shadow-lg rounded-lg p-8 w-full max-w-md">
+        <h1 class="text-2xl font-bold mb-6 text-gray-800 text-center">Asignar Asiento Contable</h1>
+        <form action="{% url 'asignar_asiento' %}" method="POST" class="space-y-4">
+            {% csrf_token %}
+            <!-- Campo para la fecha del asiento contable -->
+            <div>
+                <label for="fecha" class="block text-sm font-medium text-gray-700">Fecha</label>
+                <input type="date" id="fecha" name="fecha" 
+                       class="mt-1 p-3 border border-gray-300 rounded-md w-full focus:ring-blue-500 focus:border-blue-500">
+            </div>
+
+            <!-- Campo para la descripción -->
+            <div>
+                <label for="descripcion" class="block text-sm font-medium text-gray-700">Descripción</label>
+                <input type="text" id="descripcion" name="descripcion" placeholder="Descripción del asiento" 
+                       class="mt-1 p-3 border border-gray-300 rounded-md w-full focus:ring-blue-500 focus:border-blue-500">
+            </div>
+
+            <!-- Campo para seleccionar el período contable -->
+            <div>
+                <label for="periodo" class="block text-sm font-medium text-gray-700">Período Contable</label>
+                <select id="periodo" name="periodo" 
+                        class="mt-1 p-3 border border-gray-300 rounded-md w-full focus:ring-blue-500 focus:border-blue-500">
+                    <option value="" disabled selected>Seleccione un período</option>
+                    {% for periodo in periodos %}
+                        <option value="{{ periodo.id }}">{{ periodo.nombre }} ({{ periodo.fecha_inicio }} - {{ periodo.fecha_fin }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Botón para guardar el asiento contable -->
+            <div class="mt-6">
+                <button type="submit" class="bg-green-500 text-white p-3 rounded hover:bg-green-600 w-full">Guardar Asiento</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
