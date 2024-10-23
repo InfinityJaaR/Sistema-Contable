@@ -19,12 +19,27 @@ def gestionarTransacciones(request):
 
 @login_required
 def asignarPeriodo(request):
-    # Lógica para asignar periodo contable
-    periodos = PeriodoContable.objects.all()
     if request.method == 'POST':
-        # Procesar el formulario
-        pass
-    return render(request, 'asignarPeriodo.html', {'periodos': periodos})
+        nombre = request.POST.get('nombre')
+        fecha_inicio = request.POST.get('fechaInicio')
+        fecha_fin = request.POST.get('fechaFin')
+
+        # Validar que todos los campos sean proporcionados
+        if not nombre or not fecha_inicio or not fecha_fin:
+            messages.error(request, 'Todos los campos son obligatorios.')
+            return redirect('asignar_periodo')
+
+        # Validar que la fecha de fin sea posterior a la fecha de inicio
+        if fecha_fin <= fecha_inicio:
+            messages.error(request, 'La fecha de fin debe ser posterior a la fecha de inicio.')
+            return redirect('asignar_periodo')
+
+        # Crear el período contable
+        PeriodoContable.objects.create(nombre=nombre, fecha_inicio=fecha_inicio, fecha_fin=fecha_fin)
+        messages.success(request, 'Período contable guardado exitosamente.')
+        return redirect('gestionar_transacciones')
+
+    return render(request, 'asignarPeriodo.html')
 
 @login_required
 def asignarAsiento(request):
