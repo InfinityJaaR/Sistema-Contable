@@ -45,11 +45,18 @@ class EstadoFinanciero(models.Model):
 class CuentaContable(models.Model):
     nombre_cuenta = models.CharField(max_length=100)
     codigo_cuenta = models.CharField(max_length=10)
-    tipo = models.CharField(max_length=50)  # Activo, Pasivo, Patrimonio, etc.
+    #tipo = models.CharField(max_length=10, choices=[('DEBITO', 'Débito'), ('CREDITO', 'Crédito')])
+    tipo = models.CharField(max_length=50, choices=[
+        ('ACTIVO', 'Activo'), 
+        ('PASIVO', 'Pasivo'),
+        ('PATRIMONIO', 'Patrimonio'),
+        ('GASTOS Y COSTOS', 'Gastos y Costos'),
+        ('INGRESOS', 'Ingresos'),
+        ('C. DE CIERRE', 'C. de cierre')])   # Activo, Pasivo, Patrimonio, etc.
     cuenta_padre = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, related_name='subcuentas')
 
     def __str__(self):
-        return f"{self.nombre_cuenta} ({self.codigo_cuenta})"
+        return f"({self.codigo_cuenta}) - {self.nombre_cuenta} "
 
     class Meta:
         verbose_name = "Cuenta Contable"
