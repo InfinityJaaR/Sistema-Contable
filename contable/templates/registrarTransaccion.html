@@ -1,16 +1,12 @@
 {% extends 'nav.html' %}
 {% load static %}
-
-<head>
-    {% block head %}
+{% block head %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registrar | Transaccion</title>
     <link rel="icon" href="{% static 'img/logo2.png' %}" type="image/jpeg">
-    <script src="https://cdn.tailwindcss.com"></script> <!-- Cargando Tailwind CSS -->
-    {% endblock %}
-</head>
-
+    <script src="https://cdn.tailwindcss.com"></script> <!-- Cargando Tailwind CSS -->  
+{% endblock %}
 {% block content %}
     <!-- Formulario de registrar transacción -->
     <div class="max-w-4xl mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
@@ -78,7 +74,6 @@
         </form>
     </div>
 {% endblock %}
-
 
 {% block scripts %}
     <script>
