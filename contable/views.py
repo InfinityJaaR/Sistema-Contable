@@ -18,6 +18,24 @@ def gestionarTransacciones(request):
     return render(request, 'gestionarTransacciones.html', {'transacciones': transacciones})
 
 @login_required
+def asignarPeriodo(request):
+    # Lógica para asignar periodo contable
+    periodos = PeriodoContable.objects.all()
+    if request.method == 'POST':
+        # Procesar el formulario
+        pass
+    return render(request, 'asignarPeriodo.html', {'periodos': periodos})
+
+@login_required
+def asignarAsiento(request):
+    # Lógica para asignar asiento contable
+    asientos = AsientoContable.objects.all()
+    if request.method == 'POST':
+        # Procesar el formulario
+        pass
+    return render(request, 'asignarAsiento.html', {'asientos': asientos})
+
+@login_required
 def registrarTransaccion(request):
     cuentas = CuentaContable.objects.all()
     asientos = AsientoContable.objects.all()

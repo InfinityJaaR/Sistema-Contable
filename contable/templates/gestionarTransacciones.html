@@ -42,8 +42,10 @@
     <!-- Contenedor principal -->
     <div class="max-w-6xl mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
 
-        <!-- Botón para realizar nueva transacción -->
-        <div class="flex justify-end mb-6">
+       <!-- Botón para realizar nueva transacción -->
+        <div class="flex justify-center space-x-4 mb-6">
+            <a href="{% url 'asignar_periodo' %}" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Asignar Periodo Contable</a>
+            <a href="{% url 'asignar_asiento' %}" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Asignar Asiento Contable</a>
             <a href="{% url 'registrar_transaccion' %}" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Realizar Nueva Transacción</a>
         </div>
 
