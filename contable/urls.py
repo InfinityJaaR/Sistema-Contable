@@ -6,5 +6,6 @@ urlpatterns = [
     path('gestionarTransacciones/', gestionarTransacciones, name='gestionar_transacciones'),
     path('asignarPeriodo/', asignarPeriodo, name='asignar_periodo'),
     path('asignarAsiento/', asignarAsiento, name='asignar_asiento'),
-    path('gestionarTransacciones/registrarTransaccion/', registrarTransaccion, name='registrar_transaccion'),  
+    path('gestionarTransacciones/registrarTransaccion/', registrarTransaccion, name='registrar_transaccion'),
+    path('logout/', logout_view, name='logout'),  
 ]

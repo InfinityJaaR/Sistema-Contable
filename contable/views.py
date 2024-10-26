@@ -3,10 +3,16 @@ from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
 from .models import *
 from django.contrib import messages
+from django.contrib.auth import logout
 # Create your views here.
 
 # def login(request):
 #     return render(request, '/registration/login.html')
+
+@login_required
+def logout_view(request):
+    logout(request)
+    return redirect('login')
 
 @login_required
 def home(request):
