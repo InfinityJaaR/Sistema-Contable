@@ -58,8 +58,7 @@
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Fecha</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Descripción</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Monto</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Ver Detalles</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Editar</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider flex justify-center items-center">Ver Detalles</th>
                     </tr>
                 </thead>
                 <tbody id="transactionBody" class="bg-white divide-y divide-gray-200">
@@ -68,15 +67,10 @@
                             <td class="px-6 py-4 whitespace-nowrap">{{ transaccion.id }}</td>
                             <td class="px-6 py-4 whitespace-nowrap">{{ transaccion.fecha }}</td>
                             <td class="px-6 py-4 whitespace-nowrap">{{ transaccion.descripcion }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap">{{ transaccion.monto_total }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap">
+                            <td class="px-6 py-4 whitespace-nowrap">$ {{ transaccion.monto_total }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap flex justify-center items-center">
                                 <a href="/verdetalles/{{ transaccion.id }}" class="p-2">
-                                    <img src="{% static 'img/detalles.png' %}" alt="Detalles" class="h-5 w-5 border-2 border-green-500 rounded-md">
-                                </a>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <a href="/detalletransaccion/{{ transaccion.id }}" class="p-2">
-                                    <img src="{% static 'img/pencil.png' %}" alt="Editar" class="h-5 w-5 border-2 border-blue-300 rounded-md">
+                                    <img src="{% static 'img/detalles.png' %}" alt="Detalles" class="h-8 w-8 border-2 border-green-500 rounded-md">
                                 </a>
                             </td>
                         </tr>
