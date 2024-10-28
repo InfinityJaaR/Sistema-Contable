@@ -143,3 +143,8 @@ def registrarTransaccion(request):
         return redirect('gestionar_transacciones')  # Redirige a la página anterior
     
     return render(request, 'registrarTransaccion.html', {'cuentas': cuentas, 'asientos': asientos, 'periodos': periodos})
+
+@login_required
+def catalogoCuentas(request):
+    cuentas = CuentaContable.objects.all().order_by('codigo_cuenta')
+    return render(request, 'catalogoCuentas.html', {'cuentas': cuentas})

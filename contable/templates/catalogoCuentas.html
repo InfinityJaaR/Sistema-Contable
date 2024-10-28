@@ -1,0 +1,52 @@
+<!-- catalogo_cuentas.html -->
+{% extends 'nav.html' %}
+{% load static %}
+
+{% block head %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo de Cuentas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-center min-h-screen">
+    <div class="max-w-lg w-full p-6 bg-white rounded-lg shadow-md">
+        <h1 class="text-2xl font-bold mb-6 text-center">Catálogo de Cuentas Contables</h1>
+        <table class="min-w-full bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
+            <thead class="bg-blue-500 text-white">
+                <tr>
+                    <th class="px-4 py-2 text-left">Código</th>
+                    <th class="px-4 py-2 text-left">Nombre</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for cuenta in cuentas %}
+                    <tr>
+                        <td class="border px-4 py-2">
+                            {% if cuenta.cuenta_padre %}
+                                <span style="margin-left: 20px;">{{ cuenta.codigo_cuenta }}</span>
+                            {% else %}
+                                <strong>{{ cuenta.codigo_cuenta }}</strong>
+                            {% endif %}
+                        </td>
+                        <td class="border px-4 py-2">
+                            {% if cuenta.cuenta_padre %}
+                                <span style="margin-left: 20px;">{{ cuenta.nombre_cuenta }}</span>
+                            {% else %}
+                                <strong>{{ cuenta.nombre_cuenta }}</strong>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="2" class="text-center text-gray-500 p-4">No hay cuentas registradas en el sistema.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
