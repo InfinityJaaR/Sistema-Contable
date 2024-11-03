@@ -37,6 +37,8 @@
             {% endfor %}
         </div>
 {% endif %}
+   <!-- Contenedor para mensajes de error generados por JavaScript -->
+   <div id="js-error-messages" class="mb-4"></div>
 <!-- Formulario de registrar transacción -->
 <div class="max-w-4xl mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
     <h1 class="text-2xl font-bold mb-6">Registrar Transacción</h1>
@@ -68,7 +70,7 @@
             </select>
         </div>
 
-        <!-- Código de cuenta (lista desplegable con datos quemados) -->
+        <!-- Código de cuenta (lista desplegable)-->
         <div class="mb-4">
             <label for="codigo_cuenta" class="block text-gray-700">Código de Cuenta:</label>
             <select id="codigo_cuenta" name="codigo_cuenta" required class="w-full p-2 border border-gray-300 rounded-md">
@@ -116,9 +118,10 @@
             <textarea id="descripcion" name="descripcion" rows="4" cols="50" placeholder="Descripción general de la transacción" class="w-full p-2 border border-gray-300 rounded-md"></textarea>
         </div>
 
-        <!-- Botón para guardar la transacción -->
-        <div class="mt-6">
+        <!-- Botón para guardar/cancelar la transacción -->
+        <div class="mt-6 flex justify-between space-x-4">
             <button type="submit" class="bg-green-500 text-white p-2 rounded hover:bg-green-600 w-full">Guardar Transacción</button>
+            <a href="{% url 'gestionar_transacciones' %}" class="bg-red-500 text-white p-3 rounded hover:bg-red-600 w-full text-center">Cancelar</a>
         </div>
     </form>
 </div>
@@ -128,28 +131,52 @@
 <script>
     // Lógica para añadir filas a la tabla
     document.getElementById('add-row').addEventListener('click', function() {
-        const codigoCuenta = document.getElementById('codigo_cuenta').value;
-        const codigoCuentaText = document.getElementById('codigo_cuenta').selectedOptions[0].text;
-        const debe = document.getElementById('debe').value || '0.00';
-        const haber = document.getElementById('haber').value || '0.00';
+        const debeInput = document.getElementById('debe');
+        const haberInput = document.getElementById('haber');
 
-        // Crear una nueva fila en la tabla
-        const newRow = `<tr>
-                            <td class="border px-4 py-2">${codigoCuentaText}</td>
-                            <td class="border px-4 py-2">${debe > 0 ? 'Debe' : 'Haber'}</td>
-                            <td class="border px-4 py-2">$ ${debe}</td>
-                            <td class="border px-4 py-2">$ ${haber}</td>
-                            <input type="hidden" name="codigo_cuenta" value="${codigoCuenta}">
-                            <input type="hidden" name="debe" value="${debe}">
-                            <input type="hidden" name="haber" value="${haber}">
-                        </tr>`;
-        
-        // Insertar la fila en el cuerpo de la tabla
-        document.querySelector('#transacciones-table tbody').insertAdjacentHTML('beforeend', newRow);
+        // Validar que no haya datos en ambos campos al mismo tiempo
+        if (debeInput.value && haberInput.value) {
+            const debeInput = document.getElementById('debe');
+            const haberInput = document.getElementById('haber');
+            const errorMessageContainer = document.getElementById('js-error-messages');
 
-        // Limpiar los inputs
-        document.getElementById('debe').value = '';
-        document.getElementById('haber').value = '';
+            // Limpiar mensajes de error previos
+            errorMessageContainer.innerHTML = '';
+
+            if (debeInput.value && haberInput.value) {
+                event.preventDefault();
+                const errorMessage = document.createElement('p');
+                errorMessage.className = 'bg-red-100 text-red-700 p-4 mb-4 text-sm rounded-lg';
+                errorMessage.textContent = 'No debe haber datos en Debe y Haber al mismo tiempo.';
+                errorMessageContainer.appendChild(errorMessage);
+                debeInput.value = '';
+                haberInput.value = '';
+            }
+        }
+        else{
+            const codigoCuenta = document.getElementById('codigo_cuenta').value;
+            const codigoCuentaText = document.getElementById('codigo_cuenta').selectedOptions[0].text;
+            const debe = debeInput.value || '0.00';
+            const haber = haberInput.value || '0.00';
+    
+            // Crear una nueva fila en la tabla
+            const newRow = `<tr>
+                                <td class="border px-4 py-2">${codigoCuentaText}</td>
+                                <td class="border px-4 py-2">${debe > 0 ? 'Debe' : 'Haber'}</td>
+                                <td class="border px-4 py-2">${debe}</td>
+                                <td class="border px-4 py-2">${haber}</td>
+                                <input type="hidden" name="codigo_cuenta" value="${codigoCuenta}">
+                                <input type="hidden" name="debe" value="${debe}">
+                                <input type="hidden" name="haber" value="${haber}">
+                            </tr>`;
+            
+            // Insertar la fila en el cuerpo de la tabla
+            document.querySelector('#transacciones-table tbody').insertAdjacentHTML('beforeend', newRow);
+    
+            // Limpiar los inputs
+            debeInput.value = '';
+            haberInput.value = '';
+        }
     });
 </script>
 {% endblock %}
