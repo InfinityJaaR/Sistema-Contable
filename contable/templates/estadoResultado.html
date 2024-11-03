@@ -1,0 +1,83 @@
+{% extends 'nav.html' %}
+{% load static %}
+{% block head %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estado de Resultado</title>
+    <link rel="stylesheet" href="{% static 'css/estado-resultado.css' %}">
+</head>
+{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="content-box">
+        <h1 class="title">Estado de Resultado</h1>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Cuenta</th>
+                    <th>Debe</th>
+                    <th>Haber</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Ingresos -->
+                <tr class="section-header">
+                    <td colspan="3"><strong>Ingresos</strong></td>
+                </tr>
+                {% for cuenta in cuentas %}
+                    {% if cuenta.tipo == 'INGRESOS' %}
+                    <tr>
+                        <td>{{ cuenta.codigo }} - {{ cuenta.nombre }}</td>
+                        <td class="text-right">{% if cuenta.debe != 0 %}$ {{ cuenta.debe|floatformat:2 }}{% endif %}</td>
+                        <td class="text-right">{% if cuenta.haber != 0 %}$ {{ cuenta.haber|floatformat:2 }}{% endif %}</td>
+                    </tr>
+                    {% endif %}
+                {% endfor %}
+                
+                <!-- Costos -->
+                <tr class="section-header">
+                    <td colspan="3"><strong>Costos</strong></td>
+                </tr>
+                {% for cuenta in cuentas %}
+                    {% if cuenta.tipo == 'COSTOS' %}
+                    <tr>
+                        <td>{{ cuenta.codigo }} - {{ cuenta.nombre }}</td>
+                        <td class="text-right">{% if cuenta.debe != 0 %}$ {{ cuenta.debe|floatformat:2 }}{% endif %}</td>
+                        <td class="text-right">{% if cuenta.haber != 0 %}$ {{ cuenta.haber|floatformat:2 }}{% endif %}</td>
+                    </tr>
+                    {% endif %}
+                {% endfor %}
+                
+                <!-- Gastos -->
+                <tr class="section-header">
+                    <td colspan="3"><strong>Gastos</strong></td>
+                </tr>
+                {% for cuenta in cuentas %}
+                    {% if cuenta.tipo == 'GASTOS' %}
+                    <tr>
+                        <td>{{ cuenta.codigo }} - {{ cuenta.nombre }}</td>
+                        <td class="text-right">{% if cuenta.debe != 0 %}$ {{ cuenta.debe|floatformat:2 }}{% endif %}</td>
+                        <td class="text-right">{% if cuenta.haber != 0 %}$ {{ cuenta.haber|floatformat:2 }}{% endif %}</td>
+                    </tr>
+                    {% endif %}
+                {% endfor %}
+                <!-- Totales -->
+                <tr class="section-header">
+                    <td><strong>Total</strong></td>
+                    <td class="text-right"><strong>$ {{ total_debe|floatformat:2 }}</strong></td>
+                    <td class="text-right"><strong>$ {{ total_haber|floatformat:2 }}</strong></td>
+                </tr>
+            </tbody>
+        </table>
+        <div class="resultado-container">
+            <div class="resultado-box">
+                <span class="resultado-label">Utilidad Bruta o Pérdida:</span>
+                <span class="resultado-valor" id="resultadoValor">
+                    $ {{ utilidad_bruta_perdida|floatformat:2 }}
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

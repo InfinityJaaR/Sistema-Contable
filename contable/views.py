@@ -1,9 +1,12 @@
 from django.shortcuts import render, redirect
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.decorators import login_required
 from .models import *
 from django.contrib import messages
 from django.contrib.auth import logout
+from django.utils import timezone  # Agregar este import
+from django.db.models import Sum
+
 # Create your views here.
 
 # def login(request):
@@ -148,3 +151,46 @@ def registrarTransaccion(request):
 def catalogoCuentas(request):
     cuentas = CuentaContable.objects.all().order_by('codigo_cuenta')
     return render(request, 'catalogoCuentas.html', {'cuentas': cuentas})
+
+@login_required
+def estadoResultados(request):
+    # Obtener todas las cuentas de INGRESOS, COSTOS y GASTOS
+    cuentas = CuentaContable.objects.filter(tipo__in=['INGRESOS', 'COSTOS', 'GASTOS'])
+
+    # Calcular los valores de debe y haber para cada cuenta
+    cuentas_con_valores = []
+    total_debe = 0
+    total_haber = 0
+    for cuenta in cuentas:
+        debe = TransaccionCuenta.objects.filter(cuenta=cuenta, tipo='DEBITO').aggregate(Sum('monto'))['monto__sum'] or 0
+        haber = TransaccionCuenta.objects.filter(cuenta=cuenta, tipo='CREDITO').aggregate(Sum('monto'))['monto__sum'] or 0
+        if debe != 0 or haber != 0:
+            cuentas_con_valores.append({
+                'codigo': cuenta.codigo_cuenta,
+                'nombre': cuenta.nombre_cuenta,
+                'tipo': cuenta.tipo,
+                'debe': debe,
+                'haber': haber
+            })
+            total_debe += debe
+            total_haber += haber
+
+    utilidad_bruta_perdida = total_haber - total_debe
+
+    # Actualizar la cuenta contable de "Pérdidas y Ganancias"
+    try:
+        cuenta_perdidas_ganancias = CuentaContable.objects.get(codigo_cuenta='71')
+        cuenta_perdidas_ganancias.debe = 0 if utilidad_bruta_perdida >= 0 else abs(utilidad_bruta_perdida)
+        cuenta_perdidas_ganancias.haber = abs(utilidad_bruta_perdida) if utilidad_bruta_perdida >= 0 else 0
+        cuenta_perdidas_ganancias.save()
+    except CuentaContable.DoesNotExist:
+        messages.error(request, 'La cuenta contable de Pérdidas y Ganancias.')
+
+    context = {
+        'cuentas': cuentas_con_valores,
+        'total_debe': total_debe,
+        'total_haber': total_haber,
+        'utilidad_bruta_perdida': utilidad_bruta_perdida,
+    }
+    return render(request, 'estadoResultado.html', context)
+
