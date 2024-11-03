@@ -1,0 +1,49 @@
+{% extends 'nav.html' %}
+{% load static %}
+
+{% block head %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estado de Capital</title>
+    <link rel="icon" href="{% static 'img/logo2.png' %}" type="image/jpeg">
+    <script src="https://cdn.tailwindcss.com"></script> <!-- Cargando Tailwind CSS -->
+</head>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
+    <h1 class="text-2xl font-bold mb-6">Título de la Nueva Vista</h1>
+    
+    <!-- Formulario con un campo de entrada -->
+ 
+        <div class="mb-4">
+            <label for="input" class="block text-gray-700">Utilidades a reinvertir:</label>
+            <input type="text" id="input" name="input" class="w-full p-2 border border-gray-300 rounded-md">
+        </div>
+        <button type="submit" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Enviar</button>
+
+
+    <!-- Tabla para mostrar datos -->
+    <div class="mt-6">
+        <table class="min-w-full bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
+            <thead class="bg-blue-500 text-white">
+                <tr>
+                    <th class="px-4 py-2">Columna 1</th>
+                    <th class="px-4 py-2">Columna 2</th>
+                    <th class="px-4 py-2">Columna 3</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                <!-- Filas de la tabla -->
+                <tr>
+                    <td class="px-4 py-2">Dato 1</td>
+                    <td class="px-4 py-2">Dato 2</td>
+                    <td class="px-4 py-2">Dato 3</td>
+                </tr>
+                <!-- Agrega más filas según sea necesario -->
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

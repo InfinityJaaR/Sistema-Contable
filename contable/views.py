@@ -106,14 +106,24 @@ def registrarTransaccion(request):
             messages.error(request, 'Debe haber al menos dos cuentas en la transacción.')
             return redirect('registrar_transaccion')
         
-        # Validar que la suma de debe y haber sea igual
+        # Validar que los valores de debe y haber sean números válidos y no negativos
         try:
             total_debe = sum(float(debe) for debe in debes if debe)
             total_haber = sum(float(haber) for haber in haberes if haber)
+            
+            if any(float(debe) < 0 for debe in debes if debe):
+                messages.error(request, 'Los valores de Debe no pueden ser negativos.')
+                return redirect('registrar_transaccion')
+            
+            if any(float(haber) < 0 for haber in haberes if haber):
+                messages.error(request, 'Los valores de Haber no pueden ser negativos.')
+                return redirect('registrar_transaccion')
+                
         except ValueError:
             messages.error(request, 'Los valores de Debe y Haber deben ser números válidos.')
             return redirect('registrar_transaccion')
         
+        # Validar que la suma de debe y haber sea igual
         if total_debe != total_haber:
             messages.error(request, 'La suma de Debe y Haber debe ser igual.')
             return redirect('registrar_transaccion')
@@ -151,6 +161,10 @@ def registrarTransaccion(request):
 def catalogoCuentas(request):
     cuentas = CuentaContable.objects.all().order_by('codigo_cuenta')
     return render(request, 'catalogoCuentas.html', {'cuentas': cuentas})
+
+@login_required
+def estadoDeCapital(request):
+    return render(request, 'estadoDeCapital.html')
 
 @login_required
 def estadoResultados(request):
