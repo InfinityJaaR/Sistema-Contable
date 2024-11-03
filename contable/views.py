@@ -20,7 +20,7 @@ def home(request):
 
 @login_required
 def gestionarTransacciones(request):
-    transacciones = Transaccion.objects.all()
+    transacciones = Transaccion.objects.all().order_by('id')
     return render(request, 'gestionarTransacciones.html', {'transacciones': transacciones})
 
 @login_required
