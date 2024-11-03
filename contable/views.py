@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.contrib.auth import logout
 from django.utils import timezone  # Agregar este import
 from django.db.models import Sum
+from decimal import Decimal
 # Create your views here.
 
 # def login(request):
@@ -163,44 +164,81 @@ def catalogoCuentas(request):
 
 @login_required
 def estadoDeCapital(request):
-    # Definir la función para obtener el saldo de una cuenta específica
-    def obtener_saldo(codigo_cuenta):
+     # Definir la función para obtener el saldo de una cuenta específica
+    def obtener_saldo(codigo_cuenta, asiento_id=None):
         transacciones = TransaccionCuenta.objects.filter(cuenta__codigo_cuenta=codigo_cuenta)
+        if asiento_id:
+            transacciones = transacciones.filter(transaccion__asiento_id=asiento_id)
         saldo_debe = transacciones.filter(tipo='DEBITO').aggregate(total=Sum('monto'))['total'] or 0
         saldo_haber = transacciones.filter(tipo='CREDITO').aggregate(total=Sum('monto'))['total'] or 0
         return saldo_debe, saldo_haber
 
-    # Obtener el saldo de la cuenta de pérdidas y ganancias con codigo_cuenta 71
-    saldo_debe_utilidades, saldo_haber_utilidades = obtener_saldo('71')
-    utilidades = saldo_haber_utilidades - saldo_debe_utilidades
+    # Obtener todos los asientos contables
+    asientos = AsientoContable.objects.all()
 
-    # Obtener el porcentaje de reinversión ingresado por el usuario
-    porcentaje_reinversion = 0
+    # Obtener el asiento contable seleccionado
+    asiento_id = request.GET.get('asiento_id')
+    if asiento_id:
+        asiento_id = int(asiento_id)
+
+    utilidades = Decimal(0)
+    if asiento_id:
+        # Obtener el saldo de la cuenta de pérdidas y ganancias con codigo_cuenta 71
+        saldo_debe_utilidades, saldo_haber_utilidades = obtener_saldo('71', asiento_id)
+        utilidades = saldo_haber_utilidades - saldo_debe_utilidades
+
+    # Verificar si la solicitud es una solicitud AJAX
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({'utilidades': float(utilidades)})
+
+    reinversion_utilidades = Decimal(0)
+    nuevo_capital = Decimal(0)
+
     if request.method == 'POST':
-        porcentaje_reinversion = request.POST.get('utilidades_reinvertir', 0)
-
-    # Calcular los valores de reinversión de utilidades
-    reinversion_utilidades = utilidades * porcentaje_reinversion / 100
-    resto_utilidades = utilidades - reinversion_utilidades
+        try:
+            reinversion_utilidades = Decimal(request.POST.get('reinversion_utilidades', 0))
+            capital = Capital.objects.latest('id')
+            reinversion_monto = (reinversion_utilidades / Decimal(100)) * utilidades
+            nuevo_capital = capital.capital_social + reinversion_monto
+            
+            # Guardar el nuevo capital y reinversión
+            Capital.objects.update_or_create(
+                id=capital.id,
+                defaults={
+                    'reinversion_utilidades': reinversion_monto,
+                    'nuevo_capital': nuevo_capital
+                }
+            )
+            return redirect('estado_de_capital')
+        except Exception as e:
+            messages.error(request, f'Error al procesar los datos: {e}')
 
     # Obtener los saldos de las cuentas específicas
-    saldo_debe_capital_social, saldo_haber_capital_social = obtener_saldo('31')
-    # saldo_debe_utilidades_retenidas, saldo_haber_utilidades_retenidas = obtener_saldo('312')
+    saldo_debe_capital_social, saldo_haber_capital_social = obtener_saldo('311', asiento_id)
+    saldo_debe_utilidades_retenidas, saldo_haber_utilidades_retenidas = obtener_saldo('312', asiento_id)
+
+    # Calcular los valores de reinversión de utilidades
+    resto_utilidades = utilidades - reinversion_utilidades
 
     # Definir las cuentas y sus valores
     cuentas = [
         {'nombre': 'Patrimonio Neto', 'debe': '', 'haber': ''},
-        {'nombre': '3.1 Capital Social', 'debe': saldo_debe_capital_social, 'haber': saldo_haber_capital_social},
-        # {'nombre': '3.1.2 Utilidades retenidas', 'debe': saldo_debe_utilidades_retenidas, 'haber': saldo_haber_utilidades_retenidas},
+        {'nombre': '3.1.1 Capital Social', 'debe': saldo_debe_capital_social, 'haber': saldo_haber_capital_social},
+        {'nombre': '3.1.2 Utilidades retenidas', 'debe': saldo_debe_utilidades_retenidas, 'haber': saldo_haber_utilidades_retenidas},
         {'nombre': '3.1.2.2 Reinversion de utilidades', 'debe': resto_utilidades, 'haber': reinversion_utilidades},
     ]
 
     return render(request, 'estadoDeCapital.html', {
+        'asientos': asientos,
+        'asiento_id': asiento_id,
         'utilidades': utilidades,
         'cuentas': cuentas,
-        'porcentaje_reinversion': porcentaje_reinversion,
+        'reinversion_utilidades': reinversion_utilidades,
+        'nuevo_capital': nuevo_capital,
+        'saldo_debe_capital_social': saldo_debe_capital_social,
+        'saldo_haber_capital_social': saldo_haber_capital_social,
     })
-
+    
 @login_required
 def estadoResultados(request):
     asiento_id = request.GET.get('asiento_id')

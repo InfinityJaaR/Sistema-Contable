@@ -10,31 +10,41 @@
     <script src="https://cdn.tailwindcss.com"></script> <!-- Cargando Tailwind CSS -->
 </head>
 {% endblock %}
-
 {% block content %}
 <div class="max-w-4xl mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
-    <h1 class="text-2xl font-bold mb-6">Título de la Nueva Vista</h1>
+    <h1 class="text-2xl font-bold mb-6">Estado de Capital</h1>
     
-      <!-- Formulario con campos de entrada -->
-    <form method="POST" action="{% url 'estado_de_capital' %}">
+    <!-- Formulario para seleccionar el asiento contable -->
+    <form id="filterForm" method="GET" action="{% url 'estado_de_capital' %}">
+        <div class="mb-4">
+            <label for="asiento_id" class="block text-gray-700">Asiento Contable:</label>
+            <select id="asiento_id" name="asiento_id" class="w-full p-2 border border-gray-300 rounded-md">
+                <option value="">Seleccione un asiento contable</option>
+                {% for asiento in asientos %}
+                    <option value="{{ asiento.id }}" {% if asiento.id == asiento_id %}selected{% endif %}>{{ asiento.descripcion }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="button" id="filterButton" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Filtrar</button>
+    </form>
+
+    <!-- Formulario con campos de entrada -->
+    <form id="utilidadesForm" method="POST" action="{% url 'estado_de_capital' %}">
         {% csrf_token %}
         <div class="mb-4">
             <label for="utilidades" class="block text-gray-700">Utilidades:</label>
-            <input type="text" id="utilidades" name="utilidades" value="{{ utilidades }}" class="w-full p-2 border border-gray-300 rounded-md" readonly>
+            <input type="text" id="utilidades" name="utilidades" value="" class="w-full p-2 border border-gray-300 rounded-md" readonly>
         </div>
         <div class="mb-4">
-            <label for="utilidades_reinvertir" class="block text-gray-700">Utilidades a reinvertir (%):</label>
-            <input type="number" id="utilidades_reinvertir" name="utilidades_reinvertir" step="0.01" class="w-full p-2 border border-gray-300 rounded-md">
+            <label for="reinversion_utilidades" class="block text-gray-700">Utilidades a reinvertir (%):</label>
+            <input type="number" id="reinversion_utilidades" name="reinversion_utilidades" step="0.01" value="{{ reinversion_utilidades }}" class="w-full p-2 border border-gray-300 rounded-md">
         </div>
-        <button type="submit" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Enviar</button>
+        <button type="button" id="generateTableButton" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Generar Tabla</button>
     </form>
-</div>
-
 
     <!-- Tabla para mostrar datos -->
-     <!-- Tabla para mostrar datos -->
-     <div class="mt-6">
-        <table class="min-w-full bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
+    <div class="mt-6">
+        <table id="resultTable" class="min-w-full bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
             <thead class="bg-blue-500 text-white">
                 <tr>
                     <th class="px-4 py-2 text-center">Cuenta</th>
@@ -43,16 +53,77 @@
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
-                <!-- Filas de la tabla -->
-                {% for cuenta in cuentas %}
-                <tr>
-                    <td class="px-4 py-2 text-center">{{ cuenta.nombre }}</td>
-                    <td class="px-4 py-2 text-center">{{ cuenta.debe }}</td>
-                    <td class="px-4 py-2 text-center">{{ cuenta.haber }}</td>
-                </tr>
-                {% endfor %}
+                <!-- Filas de la tabla generadas por JavaScript -->
             </tbody>
         </table>
     </div>
+
+    <!-- Botones para guardar y cancelar -->
+    <div class="mt-4 flex justify-end space-x-4">
+        <button id="saveButton" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-md">
+            Guardar y Actualizar
+        </button>
+        <a href="{% url 'home' %}" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-md text-center">
+            Cancelar
+        </a>
+    </div>
 </div>
+{% endblock %}
+{% block scripts %}
+<script>
+    document.getElementById('filterButton').addEventListener('click', function() {
+        const asientoId = document.getElementById('asiento_id').value;
+        if (asientoId) {
+            fetch(`{% url 'estado_de_capital' %}?asiento_id=${asientoId}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('utilidades').value = data.utilidades.toFixed(2);
+                });
+        }
+    });
+
+    document.getElementById('generateTableButton').addEventListener('click', function() {
+        const utilidades = parseFloat(document.getElementById('utilidades').value);
+        const reinversionPorcentaje = parseFloat(document.getElementById('reinversion_utilidades').value);
+        const reinversionMonto = (reinversionPorcentaje / 100) * utilidades;
+        const restoMonto = utilidades - reinversionMonto;
+
+        // Obtener los valores de la base de datos para 311 Capital Social
+        const saldoDebeCapitalSocial = parseFloat('{{ saldo_debe_capital_social }}');
+        const saldoHaberCapitalSocial = parseFloat('{{ saldo_haber_capital_social }}');
+
+        const tableBody = document.querySelector('#resultTable tbody');
+        tableBody.innerHTML = `
+            <tr>
+                <td class="px-4 py-2 text-center">Patrimonio Neto</td>
+                <td class="px-4 py-2 text-center"></td>
+                <td class="px-4 py-2 text-center"></td>
+            </tr>
+            <tr>
+                <td class="px-4 py-2 text-center">311 Capital Social</td>
+                <td class="px-4 py-2 text-center">${saldoDebeCapitalSocial.toFixed(2)}</td>
+                <td class="px-4 py-2 text-center">${saldoHaberCapitalSocial.toFixed(2)}</td>
+            </tr>
+            <tr>
+                <td class="px-4 py-2 text-center">Utilidades Retenidas</td>
+                <td class="px-4 py-2 text-center"></td>
+                <td class="px-4 py-2 text-center"></td>
+            </tr>
+            <tr>
+                <td class="px-4 py-2 text-center">3.1.2.2 Reinversion de Utilidades</td>
+                <td class="px-4 py-2 text-center">${restoMonto.toFixed(2)}</td>
+                <td class="px-4 py-2 text-center">${reinversionMonto.toFixed(2)}</td>
+            </tr>
+            <tr class="border-t">
+                <td class="py-2 px-4 text-left font-bold">Nuevo Capital</td>
+                <td class="py-2 px-4 text-right font-bold text-green-600">${(saldoHaberCapitalSocial + reinversionMonto - saldoDebeCapitalSocial - restoMonto).toFixed(2)}</td>
+            </tr>
+        `;
+    });
+
+</script>
 {% endblock %}
