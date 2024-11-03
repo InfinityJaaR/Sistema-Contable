@@ -58,9 +58,10 @@
                 </div>
             </div>
 
-            <!-- Botón para guardar el período contable -->
-            <div class="mt-6">
+            <!-- Botón para guardar/ cancelar el período contable -->
+            <div class="mt-6 flex justify-between space-x-4">
                 <button type="submit" class="bg-green-500 text-white p-3 rounded hover:bg-green-600 w-full">Guardar Período</button>
+                <a href="{% url 'gestionar_transacciones' %}" class="bg-red-500 text-white p-3 rounded hover:bg-red-600 w-full text-center">Cancelar</a>
             </div>
         </form>
     </div>

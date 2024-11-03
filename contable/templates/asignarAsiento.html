@@ -71,9 +71,10 @@
                 </select>
             </div>
 
-            <!-- Botón para guardar el asiento contable -->
-            <div class="mt-6">
-                <button type="submit" class="bg-green-500 text-white p-3 rounded hover:bg-green-600 w-full">Guardar Asiento</button>
+             <!-- Botones para guardar y cancelar asiento contable-->
+             <div class="mt-6 flex space-x-4">
+                <button type="submit" class="bg-green-500 text-white p-3 rounded hover:bg-green-600 w-1/2">Guardar Asiento</button>
+                <a href="{% url 'gestionar_transacciones' %}" class="bg-red-500 text-white p-3 rounded hover:bg-red-600 w-1/2 text-center">Cancelar</a>
             </div>
         </form>
     </div>
