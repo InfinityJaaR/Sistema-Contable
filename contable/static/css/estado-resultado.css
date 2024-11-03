@@ -56,7 +56,7 @@
 
 .resultado-box {
     display: flex;
-    justify-content: space-between;
+    justify-content: space-between; /* Cambiado de flex-end a space-between */
     align-items: center;
     padding: 15px;
     background-color: #f8f9fa;
@@ -76,6 +76,7 @@
     border: 1px solid #dee2e6;
     border-radius: 4px;
     font-weight: bold;
+    margin-left: 350px;
 }
 
 .select-label {
@@ -121,4 +122,52 @@
 
 .text-right {
     text-align: right;
+}
+
+.text-negative {
+    color: #dc2626; /* Color rojo */
+    font-weight: bold;
+}
+
+.text-positive {
+    color: #16a34a; /* Color verde */
+    font-weight: bold;
+}
+
+.messages {
+    margin-bottom: 20px;
+}
+
+.alert {
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+}
+
+.alert-success {
+    background-color: #dcfce7;
+    color: #166534;
+    border: 1px solid #16a34a;
+}
+
+.alert-error {
+    background-color: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #dc2626;
+}
+
+.btn-guardar {
+    background-color: #3b82f6;
+    color: white;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    margin-left: 15px;
+    transition: background-color 0.3s;
+}
+
+.btn-guardar:hover {
+    background-color: #2563eb;
 }

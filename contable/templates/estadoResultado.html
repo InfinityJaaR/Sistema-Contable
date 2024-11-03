@@ -12,6 +12,29 @@
 <div class="container">
     <div class="content-box">
         <h1 class="title">Estado de Resultado</h1>
+        
+        <!-- Agregar mensajes de éxito o error -->
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <form method="get" action="{% url 'estadoResultados' %}">
+            <div class="periodo-select">
+                <label class="select-label">Asiento Contable</label>
+                <select class="estado-control" name="asiento_id" onchange="this.form.submit()">
+                    <option value="">Seleccione un asiento contable...</option>
+                    {% for asiento in asientos %}
+                        <option value="{{ asiento.id }}" {% if asiento.id|stringformat:"s" == asiento_id %}selected{% endif %}>Asiento {{ asiento.id }} - {{ asiento.fecha|date:"d/m/Y" }} - {{ asiento.descripcion }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
         <table class="table">
             <thead>
                 <tr>
@@ -71,12 +94,18 @@
             </tbody>
         </table>
         <div class="resultado-container">
-            <div class="resultado-box">
-                <span class="resultado-label">Utilidad Bruta o Pérdida:</span>
-                <span class="resultado-valor" id="resultadoValor">
-                    $ {{ utilidad_bruta_perdida|floatformat:2 }}
-                </span>
-            </div>
+            <form method="POST" action="{% url 'guardar_resultado' %}">
+                {% csrf_token %}
+                <div class="resultado-box">
+                    <span class="resultado-label">Utilidad Bruta o Pérdida:</span>
+                    <span class="resultado-valor {% if utilidad_bruta_perdida < 0 %}text-negative{% else %}text-positive{% endif %}" id="resultadoValor">
+                        $ {{ utilidad_bruta_perdida|floatformat:2 }}
+                    </span>
+                    <input type="hidden" name="utilidad_bruta_perdida" value="{{ utilidad_bruta_perdida }}">
+                    <input type="hidden" name="asiento_id" value="{{ asiento_id }}">
+                    <button type="submit" class="btn-guardar">Guardar Resultado</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

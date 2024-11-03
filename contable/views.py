@@ -168,43 +168,108 @@ def estadoDeCapital(request):
 
 @login_required
 def estadoResultados(request):
-    # Obtener todas las cuentas de INGRESOS, COSTOS y GASTOS
-    cuentas = CuentaContable.objects.filter(tipo__in=['INGRESOS', 'COSTOS', 'GASTOS'])
-
-    # Calcular los valores de debe y haber para cada cuenta
+    asiento_id = request.GET.get('asiento_id')
+    asientos = AsientoContable.objects.all().order_by('-fecha')
+    
+    # Inicializar variables vacías
     cuentas_con_valores = []
     total_debe = 0
     total_haber = 0
-    for cuenta in cuentas:
-        debe = TransaccionCuenta.objects.filter(cuenta=cuenta, tipo='DEBITO').aggregate(Sum('monto'))['monto__sum'] or 0
-        haber = TransaccionCuenta.objects.filter(cuenta=cuenta, tipo='CREDITO').aggregate(Sum('monto'))['monto__sum'] or 0
-        if debe != 0 or haber != 0:
-            cuentas_con_valores.append({
-                'codigo': cuenta.codigo_cuenta,
-                'nombre': cuenta.nombre_cuenta,
-                'tipo': cuenta.tipo,
-                'debe': debe,
-                'haber': haber
-            })
+    utilidad_bruta_perdida = 0
+
+    if asiento_id:
+        # Solo procesar transacciones si hay un asiento seleccionado
+        transacciones = TransaccionCuenta.objects.filter(
+            transaccion__asiento_id=asiento_id,
+            cuenta__tipo__in=['INGRESOS', 'COSTOS', 'GASTOS']
+        )
+
+        # Calcular los valores de debe y haber para cada cuenta
+        for transaccion in transacciones:
+            cuenta = transaccion.cuenta
+            debe = transaccion.monto if transaccion.tipo == 'DEBITO' else 0
+            haber = transaccion.monto if transaccion.tipo == 'CREDITO' else 0
+
+            cuenta_existente = next((c for c in cuentas_con_valores if c['codigo'] == cuenta.codigo_cuenta), None)
+            if cuenta_existente:
+                cuenta_existente['debe'] += debe
+                cuenta_existente['haber'] += haber
+            else:
+                cuentas_con_valores.append({
+                    'codigo': cuenta.codigo_cuenta,
+                    'nombre': cuenta.nombre_cuenta,
+                    'tipo': cuenta.tipo,
+                    'debe': debe,
+                    'haber': haber
+                })
+
             total_debe += debe
             total_haber += haber
 
-    utilidad_bruta_perdida = total_haber - total_debe
-
-    # Actualizar la cuenta contable de "Pérdidas y Ganancias"
-    try:
-        cuenta_perdidas_ganancias = CuentaContable.objects.get(codigo_cuenta='71')
-        cuenta_perdidas_ganancias.debe = 0 if utilidad_bruta_perdida >= 0 else abs(utilidad_bruta_perdida)
-        cuenta_perdidas_ganancias.haber = abs(utilidad_bruta_perdida) if utilidad_bruta_perdida >= 0 else 0
-        cuenta_perdidas_ganancias.save()
-    except CuentaContable.DoesNotExist:
-        messages.error(request, 'La cuenta contable de Pérdidas y Ganancias.')
+        utilidad_bruta_perdida = total_haber - total_debe
 
     context = {
+        'asientos': asientos,
         'cuentas': cuentas_con_valores,
         'total_debe': total_debe,
         'total_haber': total_haber,
         'utilidad_bruta_perdida': utilidad_bruta_perdida,
+        'asiento_id': asiento_id,
     }
     return render(request, 'estadoResultado.html', context)
+
+@login_required
+def guardar_resultado(request):
+    if request.method == 'POST':
+        utilidad_bruta_perdida = float(request.POST.get('utilidad_bruta_perdida', 0))
+        asiento_id = request.POST.get('asiento_id')
+
+        try:
+            # Obtener o crear un nuevo asiento para el registro
+            if asiento_id:
+                asiento_original = AsientoContable.objects.get(id=asiento_id)
+                asiento_cierre = AsientoContable.objects.create(
+                    fecha=timezone.now(),
+                    descripcion=f"Cierre de resultados del asiento {asiento_id}",
+                    periodo=asiento_original.periodo
+                )
+            else:
+                messages.error(request, 'No se ha seleccionado un asiento contable.')
+                return redirect('estadoResultados')
+
+            # Obtener la cuenta de Pérdidas y Ganancias
+            cuenta_perdidas_ganancias = CuentaContable.objects.get(codigo_cuenta='71')
+
+            # Crear la transacción
+            transaccion = Transaccion.objects.create(
+                asiento=asiento_cierre,
+                fecha=timezone.now(),
+                descripcion="Registro de utilidad o pérdida",
+                monto_total=abs(utilidad_bruta_perdida)
+            )
+
+            # Crear el registro en TransaccionCuenta
+            if utilidad_bruta_perdida >= 0:
+                TransaccionCuenta.objects.create(
+                    transaccion=transaccion,
+                    cuenta=cuenta_perdidas_ganancias,
+                    monto=abs(utilidad_bruta_perdida),
+                    tipo='CREDITO'
+                )
+            else:
+                TransaccionCuenta.objects.create(
+                    transaccion=transaccion,
+                    cuenta=cuenta_perdidas_ganancias,
+                    monto=abs(utilidad_bruta_perdida),
+                    tipo='DEBITO'
+                )
+
+            messages.success(request, 'El resultado ha sido guardado exitosamente en la cuenta de Pérdidas y Ganancias.')
+
+        except CuentaContable.DoesNotExist:
+            messages.error(request, 'La cuenta de Pérdidas y Ganancias (71) no existe.')
+        except Exception as e:
+            messages.error(request, f'Error al guardar el resultado: {str(e)}')
+
+    return redirect('estadoResultados')
 
