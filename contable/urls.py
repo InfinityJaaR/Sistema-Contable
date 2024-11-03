@@ -11,6 +11,9 @@ urlpatterns = [
     path('catalogoCuentas/', catalogoCuentas, name='catalogoCuentas'),
     path('estadoDeCapital/', estadoDeCapital, name='estado_de_capital'),
     path('logout/', logout_view, name='logout'),  
-    path('estadoResultados/', views.estadoResultados, name='estadoResultados'),
-    path('guardar-resultado/', views.guardar_resultado, name='guardar_resultado'),
+    path('estadoResultados/', estadoResultados, name='estadoResultados'),
+    path('guardar-resultado/', guardar_resultado, name='guardar_resultado'),
+    path('inventario/', inventario, name='inventario'),
+    path('inventario/nuevoProducto/', nuevoProducto, name='nuevo_producto'),
+    path('inventario/eliminar/<int:producto_id>/', eliminarProducto, name='eliminar_producto'),
 ]

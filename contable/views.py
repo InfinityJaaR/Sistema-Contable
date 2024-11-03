@@ -273,3 +273,56 @@ def guardar_resultado(request):
 
     return redirect('estadoResultados')
 
+@login_required
+def inventario(request):
+    productos = Producto.objects.all().order_by('id')
+    return render(request, 'inventario.html', {'productos': productos})
+
+@login_required
+def nuevoProducto(request):
+    if request.method == 'POST':
+        nombre = request.POST.get('nombre')
+        descripcion = request.POST.get('descripcion')
+        costo_total = request.POST.get('costo_total')
+
+        # Validar que los campos requeridos estén presentes
+        if not nombre or not descripcion or not costo_total:
+            messages.error(request, 'Todos los campos son obligatorios.')
+            return redirect('nuevo_producto')
+
+        try:
+            # Convertir costo_total a float y validar
+            costo_total = float(costo_total)
+            if costo_total <= 0:
+                messages.error(request, 'El costo total debe ser mayor que 0.')
+                return redirect('nuevo_producto')
+
+            # Crear el producto solo con los campos que existen en el modelo
+            Producto.objects.create(
+                nombre=nombre,
+                descripcion=descripcion,
+                costo_neto=costo_total
+            )
+            messages.success(request, 'Software guardado exitosamente.')
+            return redirect('inventario')
+        except ValueError:
+            messages.error(request, 'El costo total debe ser un número válido.')
+            return redirect('nuevo_producto')
+
+    return render(request, 'nuevoProducto.html')
+
+@login_required
+def eliminarProducto(request, producto_id):
+    try:
+        # Buscar el producto por su ID
+        producto = Producto.objects.get(id=producto_id)
+        nombre_producto = producto.nombre
+        # Eliminar el producto
+        producto.delete()
+        messages.success(request, f'El producto "{nombre_producto}" ha sido eliminado exitosamente.')
+    except Producto.DoesNotExist:
+        messages.error(request, 'El producto no existe.')
+    except Exception as e:
+        messages.error(request, f'Error al eliminar el producto: {str(e)}')
+    
+    return redirect('inventario')
