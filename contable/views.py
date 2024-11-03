@@ -158,3 +158,7 @@ def registrarTransaccion(request):
 def catalogoCuentas(request):
     cuentas = CuentaContable.objects.all().order_by('codigo_cuenta')
     return render(request, 'catalogoCuentas.html', {'cuentas': cuentas})
+
+@login_required
+def estadoDeCapital(request):
+    return render(request, 'estadoDeCapital.html')

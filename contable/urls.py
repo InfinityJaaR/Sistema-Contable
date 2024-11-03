@@ -8,5 +8,6 @@ urlpatterns = [
     path('asignarAsiento/', asignarAsiento, name='asignar_asiento'),
     path('gestionarTransacciones/registrarTransaccion/', registrarTransaccion, name='registrar_transaccion'),
     path('catalogoCuentas/', catalogoCuentas, name='catalogoCuentas'),
+    path('estadoDeCapital/', estadoDeCapital, name='estado_de_capital'),
     path('logout/', logout_view, name='logout'),  
 ]
