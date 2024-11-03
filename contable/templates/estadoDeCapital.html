@@ -15,33 +15,42 @@
 <div class="max-w-4xl mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
     <h1 class="text-2xl font-bold mb-6">Título de la Nueva Vista</h1>
     
-    <!-- Formulario con un campo de entrada -->
- 
+      <!-- Formulario con campos de entrada -->
+    <form method="POST" action="{% url 'estado_de_capital' %}">
+        {% csrf_token %}
         <div class="mb-4">
-            <label for="input" class="block text-gray-700">Utilidades a reinvertir:</label>
-            <input type="text" id="input" name="input" class="w-full p-2 border border-gray-300 rounded-md">
+            <label for="utilidades" class="block text-gray-700">Utilidades:</label>
+            <input type="text" id="utilidades" name="utilidades" value="{{ utilidades }}" class="w-full p-2 border border-gray-300 rounded-md" readonly>
+        </div>
+        <div class="mb-4">
+            <label for="utilidades_reinvertir" class="block text-gray-700">Utilidades a reinvertir (%):</label>
+            <input type="number" id="utilidades_reinvertir" name="utilidades_reinvertir" step="0.01" class="w-full p-2 border border-gray-300 rounded-md">
         </div>
         <button type="submit" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Enviar</button>
+    </form>
+</div>
 
 
     <!-- Tabla para mostrar datos -->
-    <div class="mt-6">
+     <!-- Tabla para mostrar datos -->
+     <div class="mt-6">
         <table class="min-w-full bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
             <thead class="bg-blue-500 text-white">
                 <tr>
-                    <th class="px-4 py-2">Columna 1</th>
-                    <th class="px-4 py-2">Columna 2</th>
-                    <th class="px-4 py-2">Columna 3</th>
+                    <th class="px-4 py-2 text-center">Cuenta</th>
+                    <th class="px-4 py-2 text-center">Debe</th>
+                    <th class="px-4 py-2 text-center">Haber</th>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
                 <!-- Filas de la tabla -->
+                {% for cuenta in cuentas %}
                 <tr>
-                    <td class="px-4 py-2">Dato 1</td>
-                    <td class="px-4 py-2">Dato 2</td>
-                    <td class="px-4 py-2">Dato 3</td>
+                    <td class="px-4 py-2 text-center">{{ cuenta.nombre }}</td>
+                    <td class="px-4 py-2 text-center">{{ cuenta.debe }}</td>
+                    <td class="px-4 py-2 text-center">{{ cuenta.haber }}</td>
                 </tr>
-                <!-- Agrega más filas según sea necesario -->
+                {% endfor %}
             </tbody>
         </table>
     </div>

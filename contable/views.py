@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from .models import *
 from django.contrib import messages
 from django.contrib.auth import logout
+from django.db.models import Sum 
 # Create your views here.
 
 # def login(request):
@@ -161,4 +162,40 @@ def catalogoCuentas(request):
 
 @login_required
 def estadoDeCapital(request):
-    return render(request, 'estadoDeCapital.html')
+    # Definir la función para obtener el saldo de una cuenta específica
+    def obtener_saldo(codigo_cuenta):
+        transacciones = TransaccionCuenta.objects.filter(cuenta__codigo_cuenta=codigo_cuenta)
+        saldo_debe = transacciones.filter(tipo='DEBITO').aggregate(total=Sum('monto'))['total'] or 0
+        saldo_haber = transacciones.filter(tipo='CREDITO').aggregate(total=Sum('monto'))['total'] or 0
+        return saldo_debe, saldo_haber
+
+    # Obtener el saldo de la cuenta de pérdidas y ganancias con codigo_cuenta 71
+    saldo_debe_utilidades, saldo_haber_utilidades = obtener_saldo('71')
+    utilidades = saldo_haber_utilidades - saldo_debe_utilidades
+
+    # Obtener el porcentaje de reinversión ingresado por el usuario
+    porcentaje_reinversion = 0
+    if request.method == 'POST':
+        porcentaje_reinversion = request.POST.get('utilidades_reinvertir', 0)
+
+    # Calcular los valores de reinversión de utilidades
+    reinversion_utilidades = utilidades * porcentaje_reinversion / 100
+    resto_utilidades = utilidades - reinversion_utilidades
+
+    # Obtener los saldos de las cuentas específicas
+    saldo_debe_capital_social, saldo_haber_capital_social = obtener_saldo('31')
+    # saldo_debe_utilidades_retenidas, saldo_haber_utilidades_retenidas = obtener_saldo('312')
+
+    # Definir las cuentas y sus valores
+    cuentas = [
+        {'nombre': 'Patrimonio Neto', 'debe': '', 'haber': ''},
+        {'nombre': '3.1 Capital Social', 'debe': saldo_debe_capital_social, 'haber': saldo_haber_capital_social},
+        # {'nombre': '3.1.2 Utilidades retenidas', 'debe': saldo_debe_utilidades_retenidas, 'haber': saldo_haber_utilidades_retenidas},
+        {'nombre': '3.1.2.2 Reinversion de utilidades', 'debe': resto_utilidades, 'haber': reinversion_utilidades},
+    ]
+
+    return render(request, 'estadoDeCapital.html', {
+        'utilidades': utilidades,
+        'cuentas': cuentas,
+        'porcentaje_reinversion': porcentaje_reinversion,
+    })
