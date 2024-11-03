@@ -47,7 +47,6 @@
         id="fecha"
         name="fecha"
         required
-        value="2024-10-22"
         class="w-full p-2 border border-gray-300 rounded-md"
       />
     </div>
@@ -63,9 +62,8 @@
       >
         {% for periodo in periodos %}
         <option value="{{ periodo.id }}">
-          {{ periodo.nombre }} ({{ periodo.fecha_inicio }} - {{
-          periodo.fecha_fin }})
-        </option>
+          {{ periodo.nombre }} ({{ periodo.fecha_inicio }} - {{ periodo.fecha_fin }})
+      </option>
         {% endfor %}
       </select>
     </div>
