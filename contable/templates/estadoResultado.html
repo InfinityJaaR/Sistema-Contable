@@ -26,6 +26,17 @@
         
         <form method="get" action="{% url 'estadoResultados' %}">
             <div class="periodo-select">
+                <label class="select-label">Seleccione el Periodo</label>
+                <select class="estado-control" name="periodo_id" onchange="this.form.submit()">
+                    <option value="">Seleccione un periodo contable...</option>
+                    {% for p in periodos %}
+                        <option value="{{ p.id }}" {% if periodo_id|stringformat:"s" == p.id|stringformat:"s" %}selected{% endif %}>
+                            {{ p.nombre }} ({{ p.fecha_inicio }} - {{ p.fecha_fin }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="periodo-select">
                 <label class="select-label">Asiento Contable</label>
                 <select class="estado-control" name="asiento_id" onchange="this.form.submit()">
                     <option value="">Seleccione un asiento contable...</option>

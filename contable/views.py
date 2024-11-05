@@ -264,52 +264,94 @@ def estadoDeCapital(request):
 @login_required
 def estadoResultados(request):
     asiento_id = request.GET.get('asiento_id')
+    periodo_id = request.GET.get('periodo_id')
+    periodos = PeriodoContable.objects.all().order_by('fecha_inicio')
     asientos = AsientoContable.objects.all().order_by('-fecha')
-    
-    # Inicializar variables vacías
+
+    # Inicializar variables
     cuentas_con_valores = []
     total_debe = 0
     total_haber = 0
     utilidad_bruta_perdida = 0
 
-    if asiento_id:
-        # Solo procesar transacciones si hay un asiento seleccionado
-        transacciones = TransaccionCuenta.objects.filter(
-            transaccion__asiento_id=asiento_id,
-            cuenta__tipo__in=['INGRESOS', 'COSTOS', 'GASTOS']
+    # Si hay periodo seleccionado, filtrar asientos por ese periodo
+    if periodo_id:
+        try:
+            periodo = PeriodoContable.objects.get(id=periodo_id)
+            asientos = AsientoContable.objects.filter(periodo=periodo).order_by('-fecha')
+        except PeriodoContable.DoesNotExist:
+            messages.error(request, 'El período contable seleccionado no existe.')
+            return redirect('estadoResultados')
+
+    # Construir el filtro base para las transacciones
+    transacciones_filter = Q(cuenta__tipo__in=['INGRESOS', 'COSTOS', 'GASTOS'])
+    
+    # Agregar filtros según los parámetros seleccionados
+    if periodo_id and asiento_id:
+        # Si ambos están seleccionados, filtrar por periodo y asiento
+        transacciones_filter &= Q(
+            transaccion__asiento__periodo_id=periodo_id,
+            transaccion__asiento_id=asiento_id
         )
+    elif periodo_id:
+        # Solo filtrar por periodo
+        transacciones_filter &= Q(transaccion__asiento__periodo_id=periodo_id)
+    elif asiento_id:
+        # Solo filtrar por asiento
+        transacciones_filter &= Q(transaccion__asiento_id=asiento_id)
+    else:
+        # Si no hay filtros, no mostrar nada
+        context = {
+            'asientos': asientos,
+            'periodos': periodos,
+            'cuentas': [],
+            'total_debe': 0,
+            'total_haber': 0,
+            'utilidad_bruta_perdida': 0,
+            'asiento_id': asiento_id,
+            'periodo_id': periodo_id,
+        }
+        return render(request, 'estadoResultado.html', context)
 
-        # Calcular los valores de debe y haber para cada cuenta
-        for transaccion in transacciones:
-            cuenta = transaccion.cuenta
-            debe = transaccion.monto if transaccion.tipo == 'DEBITO' else 0
-            haber = transaccion.monto if transaccion.tipo == 'CREDITO' else 0
+    # Obtener las transacciones según los filtros aplicados
+    transacciones = TransaccionCuenta.objects.filter(transacciones_filter)
 
-            cuenta_existente = next((c for c in cuentas_con_valores if c['codigo'] == cuenta.codigo_cuenta), None)
-            if cuenta_existente:
-                cuenta_existente['debe'] += debe
-                cuenta_existente['haber'] += haber
-            else:
-                cuentas_con_valores.append({
-                    'codigo': cuenta.codigo_cuenta,
-                    'nombre': cuenta.nombre_cuenta,
-                    'tipo': cuenta.tipo,
-                    'debe': debe,
-                    'haber': haber
-                })
+    # Agrupar las transacciones por cuenta
+    cuentas_dict = {}
+    for trans in transacciones:
+        key = (trans.cuenta.codigo_cuenta, trans.cuenta.nombre_cuenta, trans.cuenta.tipo)
+        if key not in cuentas_dict:
+            cuentas_dict[key] = {'debe': 0, 'haber': 0}
+        
+        if trans.tipo == 'DEBITO':
+            cuentas_dict[key]['debe'] += float(trans.monto)
+        else:
+            cuentas_dict[key]['haber'] += float(trans.monto)
 
-            total_debe += debe
-            total_haber += haber
+    # Convertir el diccionario a lista de cuentas con valores
+    for (codigo, nombre, tipo), valores in cuentas_dict.items():
+        cuentas_con_valores.append({
+            'codigo': codigo,
+            'nombre': nombre,
+            'tipo': tipo,
+            'debe': valores['debe'],
+            'haber': valores['haber']
+        })
 
-        utilidad_bruta_perdida = total_haber - total_debe
+    # Calcular totales
+    total_debe = sum(cuenta['debe'] for cuenta in cuentas_con_valores)
+    total_haber = sum(cuenta['haber'] for cuenta in cuentas_con_valores)
+    utilidad_bruta_perdida = total_haber - total_debe
 
     context = {
         'asientos': asientos,
+        'periodos': periodos,
         'cuentas': cuentas_con_valores,
         'total_debe': total_debe,
         'total_haber': total_haber,
         'utilidad_bruta_perdida': utilidad_bruta_perdida,
         'asiento_id': asiento_id,
+        'periodo_id': periodo_id,
     }
     return render(request, 'estadoResultado.html', context)
 
