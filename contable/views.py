@@ -1,11 +1,12 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.decorators import login_required
 from .models import *
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.utils import timezone  # Agregar este import
-from django.db.models import Sum
+from django.db.models import Sum, Q
+from .models import PeriodoContable, CuentaContable, TransaccionCuenta, Transaccion, TransaccionCuenta
 from decimal import Decimal
 # Create your views here.
 
@@ -415,3 +416,76 @@ def eliminarProducto(request, producto_id):
         messages.error(request, f'Error al eliminar el producto: {str(e)}')
     
     return redirect('inventario')
+
+@login_required
+def balanceGeneral(request):
+    # Obtener el periodo contable seleccionado, si se especifica
+    periodo_id = request.GET.get('periodo_id')
+    periodo = get_object_or_404(PeriodoContable, id=periodo_id) if periodo_id else None
+
+    # Obtener todos los periodos contables para el selector
+    periodos = PeriodoContable.objects.all().order_by('fecha_inicio')
+
+    # Filtrar cuentas por tipo y calcular los totales de activo, pasivo y patrimonio, solo para el período seleccionado
+    cuentas_activo = CuentaContable.objects.filter(
+        tipo='ACTIVO',
+        transaccioncuenta__transaccion__asiento__periodo=periodo  # Filtrar por el período contable
+    ).order_by('codigo_cuenta').annotate(
+        debe=Sum('transaccioncuenta__monto', filter=Q(transaccioncuenta__tipo='DEBITO')),
+        haber=Sum('transaccioncuenta__monto', filter=Q(transaccioncuenta__tipo='CREDITO'))
+    )
+    cuentas_pasivo = CuentaContable.objects.filter(
+        tipo='PASIVO',
+        transaccioncuenta__transaccion__asiento__periodo=periodo  # Filtrar por el período contable
+    ).order_by('codigo_cuenta').annotate(
+        debe=Sum('transaccioncuenta__monto', filter=Q(transaccioncuenta__tipo='DEBITO')),
+        haber=Sum('transaccioncuenta__monto', filter=Q(transaccioncuenta__tipo='CREDITO'))
+    )
+    cuentas_patrimonio = CuentaContable.objects.filter(
+        tipo='PATRIMONIO',
+        transaccioncuenta__transaccion__asiento__periodo=periodo  # Filtrar por el período contable
+    ).order_by('codigo_cuenta').annotate(
+        debe=Sum('transaccioncuenta__monto', filter=Q(transaccioncuenta__tipo='DEBITO')),
+        haber=Sum('transaccioncuenta__monto', filter=Q(transaccioncuenta__tipo='CREDITO'))
+    )
+
+    # Calcular los totales y manejar valores None
+    total_activo = sum((c.debe or 0) - (c.haber or 0) for c in cuentas_activo)
+    total_pasivo = sum((c.haber or 0) - (c.debe or 0) for c in cuentas_pasivo)
+    total_patrimonio = sum((c.haber or 0) - (c.debe or 0) for c in cuentas_patrimonio)
+
+    # Calcular los totales generales de debe y haber de todas las cuentas
+    total_debe = sum((c.debe or 0) for c in cuentas_activo) + \
+                 sum((c.debe or 0) for c in cuentas_pasivo) + \
+                 sum((c.debe or 0) for c in cuentas_patrimonio)
+
+    total_haber = sum((c.haber or 0) for c in cuentas_activo) + \
+                  sum((c.haber or 0) for c in cuentas_pasivo) + \
+                  sum((c.haber or 0) for c in cuentas_patrimonio)
+
+
+    context = {
+        'periodo': periodo,
+        'periodos': periodos,  # Pasamos todos los periodos al contexto
+        'cuentas_activo': cuentas_activo,
+        'cuentas_pasivo': cuentas_pasivo,
+        'cuentas_patrimonio': cuentas_patrimonio,
+        'total_activo': total_activo,
+        'total_pasivo': total_pasivo,
+        'total_patrimonio': total_patrimonio,
+        'total_debe': total_debe, 
+        'total_haber': total_haber 
+    }
+    return render(request, 'balanceGeneral.html', context)
+
+@login_required
+def verDetallesTransaccion(request, transaccion_id):
+    # Obtener la transacción específica y sus detalles
+    transaccion = get_object_or_404(Transaccion, id=transaccion_id)
+    detalles_cuentas = TransaccionCuenta.objects.filter(transaccion=transaccion)
+
+    context = {
+        'transaccion': transaccion,
+        'detalles_cuentas': detalles_cuentas
+    }
+    return render(request, 'verDetallesTransaccion.html', context)

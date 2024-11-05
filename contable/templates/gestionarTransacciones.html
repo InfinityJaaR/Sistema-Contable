@@ -68,7 +68,7 @@
                             <td class="px-6 py-4 whitespace-nowrap">{{ transaccion.descripcion }}</td>
                             <td class="px-6 py-4 whitespace-nowrap">$ {{ transaccion.monto_total }}</td>
                             <td class="px-6 py-4 whitespace-nowrap flex justify-center items-center">
-                                <a href="/verdetalles/{{ transaccion.id }}" class="p-2">
+                                <a href="{% url 'verDetallesTransaccion' transaccion.id %}" class="p-2">
                                     <img src="{% static 'img/detalles.png' %}" alt="Detalles" class="h-8 w-8 border-2 border-green-500 rounded-md">
                                 </a>
                             </td>
