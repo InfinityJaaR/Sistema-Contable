@@ -1,0 +1,96 @@
+{% extends 'nav.html' %}
+{% load static %}
+{% block head %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Balance General</title>
+    <link rel="stylesheet" href="{% static 'css/balanceGeneral.css' %}">
+</head>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="content-box">
+        <h1 class="title">Balance General</h1>
+        
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <form method="get" action="{% url 'balanceGeneral' %}">
+            <div class="periodo-select">
+                <label class="select-label">Seleccione el Periodo</label>
+                <select class="estado-control" name="periodo_id" onchange="this.form.submit()">
+                    <option value="">Seleccione un periodo contable...</option>
+                    {% for p in periodos %}
+                        <option value="{{ p.id }}" {% if periodo and p.id == periodo.id %}selected{% endif %}>
+                            {{ p.nombre }} ({{ p.fecha_inicio }} - {{ p.fecha_fin }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>        
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Cuenta</th>
+                    <th>Debe</th>
+                    <th>Haber</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Activo -->
+                <tr class="section-header">
+                    <td colspan="3"><strong>Activo</strong></td>
+                </tr>
+                {% for cuenta in cuentas_activo %}
+                <tr>
+                    <td>{{ cuenta.codigo_cuenta }} - {{ cuenta.nombre_cuenta }}</td>
+                    <td class="text-right">{% if cuenta.debe %}$ {{ cuenta.debe|floatformat:2 }}{% else %} - {% endif %}</td>
+                    <td class="text-right">{% if cuenta.haber %}$ {{ cuenta.haber|floatformat:2 }}{% else %} - {% endif %}</td>
+                </tr>
+                {% endfor %}
+                
+                <!-- Pasivo -->
+                <tr class="section-header">
+                    <td colspan="3"><strong>Pasivo</strong></td>
+                </tr>
+                {% for cuenta in cuentas_pasivo %}
+                <tr>
+                    <td>{{ cuenta.codigo_cuenta }} - {{ cuenta.nombre_cuenta }}</td>
+                    <td class="text-right">{% if cuenta.debe %}$ {{ cuenta.debe|floatformat:2 }}{% else %} - {% endif %}</td>
+                    <td class="text-right">{% if cuenta.haber %}$ {{ cuenta.haber|floatformat:2 }}{% else %} - {% endif %}</td>
+                </tr>
+                {% endfor %}
+
+                <!-- Patrimonio -->
+                <tr class="section-header">
+                    <td colspan="3"><strong>Patrimonio</strong></td>
+                </tr>
+                {% for cuenta in cuentas_patrimonio %}
+                <tr>
+                    <td>{{ cuenta.codigo_cuenta }} - {{ cuenta.nombre_cuenta }}</td>
+                    <td class="text-right">{% if cuenta.debe %}$ {{ cuenta.debe|floatformat:2 }}{% else %} - {% endif %}</td>
+                    <td class="text-right">{% if cuenta.haber %}$ {{ cuenta.haber|floatformat:2 }}{% else %} - {% endif %}</td>
+                </tr>
+                {% endfor %}
+                
+                <!-- Totales -->
+                <tr class="section-header">
+                    <td><strong>Total</strong></td>
+                    <td class="text-right"><strong>$ {{ total_debe|floatformat:2 }}</strong></td>
+                    <td class="text-right"><strong>$ {{ total_haber|floatformat:2 }}</strong></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
