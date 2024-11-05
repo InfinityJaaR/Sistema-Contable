@@ -81,9 +81,14 @@ def asignarAsiento(request):
 @login_required
 def registrarTransaccion(request):
     cuentas = CuentaContable.objects.all()
-    asientos = AsientoContable.objects.all()
     periodos = PeriodoContable.objects.all()
-    
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        periodo_id = request.GET.get('periodo_id')
+        asientos = AsientoContable.objects.filter(periodo_id=periodo_id)
+        asientos_data = [{'id': asiento.id, 'descripcion': asiento.descripcion} for asiento in asientos]
+        return JsonResponse({'asientos': asientos_data})
+
     if request.method == 'POST':
         fecha = request.POST.get('fecha')
         descripcion = request.POST.get('descripcion')
@@ -156,7 +161,7 @@ def registrarTransaccion(request):
         messages.success(request, 'Transacción guardada exitosamente.')
         return redirect('gestionar_transacciones')  # Redirige a la página anterior
     
-    return render(request, 'registrarTransaccion.html', {'cuentas': cuentas, 'asientos': asientos, 'periodos': periodos})
+    return render(request, 'registrarTransaccion.html', {'cuentas': cuentas, 'periodos': periodos})
 
 @login_required
 def catalogoCuentas(request):
