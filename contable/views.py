@@ -7,7 +7,7 @@ from django.contrib.auth import logout
 from django.utils import timezone  # Agregar este import
 from django.db.models import Sum, Q
 from .models import PeriodoContable, CuentaContable, TransaccionCuenta, Transaccion, TransaccionCuenta
-
+from decimal import Decimal
 # Create your views here.
 
 # def login(request):
@@ -81,9 +81,14 @@ def asignarAsiento(request):
 @login_required
 def registrarTransaccion(request):
     cuentas = CuentaContable.objects.all()
-    asientos = AsientoContable.objects.all()
     periodos = PeriodoContable.objects.all()
-    
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        periodo_id = request.GET.get('periodo_id')
+        asientos = AsientoContable.objects.filter(periodo_id=periodo_id)
+        asientos_data = [{'id': asiento.id, 'descripcion': asiento.descripcion} for asiento in asientos]
+        return JsonResponse({'asientos': asientos_data})
+
     if request.method == 'POST':
         fecha = request.POST.get('fecha')
         descripcion = request.POST.get('descripcion')
@@ -156,7 +161,7 @@ def registrarTransaccion(request):
         messages.success(request, 'Transacción guardada exitosamente.')
         return redirect('gestionar_transacciones')  # Redirige a la página anterior
     
-    return render(request, 'registrarTransaccion.html', {'cuentas': cuentas, 'asientos': asientos, 'periodos': periodos})
+    return render(request, 'registrarTransaccion.html', {'cuentas': cuentas, 'periodos': periodos})
 
 @login_required
 def catalogoCuentas(request):
@@ -165,8 +170,97 @@ def catalogoCuentas(request):
 
 @login_required
 def estadoDeCapital(request):
-    return render(request, 'estadoDeCapital.html')
+     # Definir la función para obtener el saldo de una cuenta específica
+    def obtener_saldo(codigo_cuenta, asiento_id=None):
+        transacciones = TransaccionCuenta.objects.filter(cuenta__codigo_cuenta=codigo_cuenta)
+        if asiento_id:
+            transacciones = transacciones.filter(transaccion__asiento_id=asiento_id)
+        saldo_debe = transacciones.filter(tipo='DEBITO').aggregate(total=Sum('monto'))['total'] or 0
+        saldo_haber = transacciones.filter(tipo='CREDITO').aggregate(total=Sum('monto'))['total'] or 0
+        return saldo_debe, saldo_haber
 
+    # Obtener todos los asientos contables
+    asientos = AsientoContable.objects.all()
+
+    # Obtener el asiento contable seleccionado
+    asiento_id = request.GET.get('asiento_id')
+    if asiento_id:
+        asiento_id = int(asiento_id)
+
+    utilidades = Decimal(0)
+    if asiento_id:
+        # Obtener el saldo de la cuenta de pérdidas y ganancias con codigo_cuenta 71
+        saldo_debe_utilidades, saldo_haber_utilidades = obtener_saldo('71', asiento_id)
+        utilidades = saldo_haber_utilidades - saldo_debe_utilidades
+
+    # Verificar si la solicitud es una solicitud AJAX
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({'utilidades': float(utilidades)})
+
+    reinversion_utilidades = Decimal(0)
+    nuevo_capital = Decimal(0)
+
+    if request.method == 'POST':
+        try:
+            reinversion_utilidades = Decimal(request.POST.get('reinversion_utilidades', 0))
+            reinversion_monto = (reinversion_utilidades / Decimal(100)) * utilidades
+            resto_utilidades = utilidades - reinversion_monto
+
+            # Calcular el monto total de la transacción
+            monto_total = resto_utilidades + reinversion_monto
+
+            # Crear una nueva transacción para el asiento contable seleccionado
+            transaccion = Transaccion.objects.create(
+                fecha=timezone.now(),
+                descripcion='Actualización de Capital Social',
+                monto_total=monto_total
+            )
+
+            # Crear las transacciones de cuenta para cumplir con la partida doble
+            TransaccionCuenta.objects.create(
+                transaccion=transaccion,
+                cuenta=CuentaContable.objects.get(codigo_cuenta='311'),
+                monto=monto_total,
+                tipo='DEBITO'
+            )
+            TransaccionCuenta.objects.create(
+                transaccion=transaccion,
+                cuenta=CuentaContable.objects.get(codigo_cuenta='31'),
+                monto=monto_total,
+                tipo='CREDITO'
+            )
+
+            messages.success(request, 'Capital social actualizado exitosamente.')
+            return redirect('estado_de_capital')
+        except Exception as e:
+            messages.error(request, f'Error al procesar los datos: {e}')
+
+    # Obtener los saldos de las cuentas específicas
+    saldo_debe_capital_social, saldo_haber_capital_social = obtener_saldo('311', asiento_id)
+    saldo_debe_utilidades_retenidas, saldo_haber_utilidades_retenidas = obtener_saldo('312', asiento_id)
+
+    # Calcular los valores de reinversión de utilidades
+    resto_utilidades = utilidades - reinversion_utilidades
+
+    # Definir las cuentas y sus valores
+    cuentas = [
+        {'nombre': 'Patrimonio Neto', 'debe': '', 'haber': ''},
+        {'nombre': '311 Capital Social', 'debe': saldo_debe_capital_social, 'haber': saldo_haber_capital_social},
+        {'nombre': '3.1.2 Utilidades retenidas', 'debe': saldo_debe_utilidades_retenidas, 'haber': saldo_haber_utilidades_retenidas},
+        {'nombre': '3.1.2.2 Reinversion de utilidades', 'debe': resto_utilidades, 'haber': reinversion_utilidades},
+    ]
+
+    return render(request, 'estadoDeCapital.html', {
+        'asientos': asientos,
+        'asiento_id': asiento_id,
+        'utilidades': utilidades,
+        'cuentas': cuentas,
+        'reinversion_utilidades': reinversion_utilidades,
+        'nuevo_capital': nuevo_capital,
+        'saldo_debe_capital_social': saldo_debe_capital_social,
+        'saldo_haber_capital_social': saldo_haber_capital_social,
+    })
+    
 @login_required
 def estadoResultados(request):
     asiento_id = request.GET.get('asiento_id')

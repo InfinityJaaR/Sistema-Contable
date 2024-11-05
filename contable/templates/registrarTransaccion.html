@@ -5,11 +5,13 @@
 <link rel="icon" href="{% static 'img/logo2.png' %}" type="image/jpeg" />
 <script src="https://cdn.tailwindcss.com"></script>
 <!-- Cargando Tailwind CSS -->
-{% endblock %} {% block content %}
+{% endblock %} 
+{% block content %}
 <!-- Mostrar mensajes de éxito o error -->
 {% if messages %}
 <div class="mb-4">
-  {% for message in messages %} {% if 'success' in message.tags %}
+  {% for message in messages %}
+  {% if 'success' in message.tags %}
   <p class="bg-green-100 text-green-700 p-4 mb-4 text-sm rounded-lg">
     {{ message }}
   </p>
@@ -29,7 +31,8 @@
   <p class="bg-gray-100 text-gray-700 p-4 mb-4 text-sm rounded-lg">
     {{ message }}
   </p>
-  {% endif %} {% endfor %}
+  {% endif %}
+  {% endfor %}
 </div>
 {% endif %}
 <!-- Contenedor para mensajes de error generados por JavaScript -->
@@ -47,7 +50,6 @@
         id="fecha"
         name="fecha"
         required
-        value="2024-10-22"
         class="w-full p-2 border border-gray-300 rounded-md"
       />
     </div>
@@ -55,16 +57,11 @@
     <!-- Periodo Contable -->
     <div class="mb-4">
       <label for="periodo" class="block text-gray-700">Periodo Contable:</label>
-      <select
-        id="periodo"
-        name="periodo"
-        required
-        class="w-full p-2 border border-gray-300 rounded-md"
-      >
+      <select id="periodo" name="periodo" required class="w-full p-2 border border-gray-300 rounded-md">
+        <option value="">Seleccione un periodo contable</option>
         {% for periodo in periodos %}
         <option value="{{ periodo.id }}">
-          {{ periodo.nombre }} ({{ periodo.fecha_inicio }} - {{
-          periodo.fecha_fin }})
+          {{ periodo.nombre }} ({{ periodo.fecha_inicio }} - {{ periodo.fecha_fin }})
         </option>
         {% endfor %}
       </select>
@@ -73,33 +70,18 @@
     <!-- Asiento Contable -->
     <div class="mb-4">
       <label for="asiento" class="block text-gray-700">Asiento Contable:</label>
-      <select
-        id="asiento"
-        name="asiento"
-        required
-        class="w-full p-2 border border-gray-300 rounded-md"
-      >
-        {% for asiento in asientos %}
-        <option value="{{ asiento.id }}">
-          Asiento {{ asiento.id }} - {{ asiento.descripcion }}
-        </option>
-        {% endfor %}
+      <select id="asiento" name="asiento" required class="w-full p-2 border border-gray-300 rounded-md">
+        <option value="">Seleccione un asiento contable</option>
       </select>
     </div>
 
     <!-- Código de cuenta (lista desplegable)-->
     <div class="mb-4">
-      <label for="codigo_cuenta" class="block text-gray-700"
-        >Código de Cuenta:</label
-      >
-      <select
-        id="codigo_cuenta"
-        name="codigo_cuenta"
-        required
-        class="w-full p-2 border border-gray-300 rounded-md"
-      >
+      <label for="codigo_cuenta" class="block text-gray-700">Código de Cuenta:</label>
+      <select id="codigo_cuenta" name="codigo_cuenta" required class="w-full p-2 border border-gray-300 rounded-md">
+        <option value="">Seleccione un código de cuenta</option>
         {% for cuenta in cuentas %}
-        <option value="{{ cuenta.id }}">
+        <option value="{{ cuenta.codigo_cuenta }} - {{ cuenta.nombre_cuenta }}">
           {{ cuenta.codigo_cuenta }} - {{ cuenta.nombre_cuenta }}
         </option>
         {% endfor %}
@@ -151,9 +133,9 @@
       <thead class="bg-blue-500 text-white">
         <tr>
           <th class="px-4 py-2">Código de Cuenta</th>
-          <th class="px-4 py-2">Descripción</th>
           <th class="px-4 py-2">Debe</th>
           <th class="px-4 py-2">Haber</th>
+          <th class="px-4 py-2">Acciones</th>
         </tr>
       </thead>
       <tbody class="bg-white divide-y divide-gray-200">
@@ -190,67 +172,89 @@
     </div>
   </form>
 </div>
-{% endblock %} {% block scripts %}
+{% endblock %}
+
+{% block scripts %}
 <script>
-  // Lógica para añadir filas a la tabla
-  document.getElementById("add-row").addEventListener("click", function () {
-    const debeInput = document.getElementById("debe");
-    const haberInput = document.getElementById("haber");
-    const errorMessageContainer = document.getElementById("js-error-messages");
+  document.getElementById('periodo').addEventListener('change', function() {
+      const periodoId = this.value;
+      const asientoSelect = document.getElementById('asiento');
+      asientoSelect.innerHTML = '<option value="">Seleccione un asiento contable</option>';
 
-    // Limpiar mensajes de error previos
-    errorMessageContainer.innerHTML = "";
+      if (periodoId) {
+          fetch(`{% url 'registrar_transaccion' %}?periodo_id=${periodoId}`, {
+              headers: {
+                  'X-Requested-With': 'XMLHttpRequest'
+              }
+          })
+          .then(response => response.json())
+          .then(data => {
+              data.asientos.forEach(asiento => {
+                  const option = document.createElement('option');
+                  option.value = asiento.id;
+                  option.textContent = `Asiento ${asiento.id} - ${asiento.descripcion}`;
+                  asientoSelect.appendChild(option);
+              });
+          });
+      }
+  });
 
-    // Validar que no haya datos en ambos campos al mismo tiempo
-    if (debeInput.value && haberInput.value) {
-      const errorMessage = document.createElement("p");
-      errorMessage.className =
-        "bg-red-100 text-red-700 p-4 mb-4 text-sm rounded-lg";
-      errorMessage.textContent =
-        "No debe haber datos en Debe y Haber al mismo tiempo.";
-      errorMessageContainer.appendChild(errorMessage);
-      return;
+  document.getElementById('add-row').addEventListener('click', function() {
+      const transaccionesTable = document.getElementById('transacciones-table').querySelector('tbody');
+      const codigoCuentaSelect = document.getElementById('codigo_cuenta');
+      const codigoCuenta = codigoCuentaSelect.value;
+      const debe = document.getElementById('debe').value;
+      const haber = document.getElementById('haber').value;
+
+      // Validar que no haya datos en ambos campos al mismo tiempo
+      const errorMessageContainer = document.getElementById('js-error-messages');
+      errorMessageContainer.innerHTML = '';
+      if (!codigoCuenta) {
+        const errorMessage = document.createElement('p');
+        errorMessage.className = 'bg-red-100 text-red-700 p-4 mb-4 text-sm rounded-lg';
+        errorMessage.textContent = 'Debe seleccionar un código de cuenta.';
+        errorMessageContainer.appendChild(errorMessage);
+        return;
     }
 
-    // Validar que los valores no sean negativos
-    if (debeInput.value < 0 || haberInput.value < 0) {
-      const errorMessage = document.createElement("p");
-      errorMessage.className =
-        "bg-red-100 text-red-700 p-4 mb-4 text-sm rounded-lg";
-      errorMessage.textContent = "No debe haber datos negativos.";
-      errorMessageContainer.appendChild(errorMessage);
-      debeInput.value = "";
-      haberInput.value = "";
-      return;
-    }
+      if (debe && haber) {
+          const errorMessage = document.createElement('p');
+          errorMessage.className = 'bg-red-100 text-red-700 p-4 mb-4 text-sm rounded-lg';
+          errorMessage.textContent = 'No debe haber datos en Debe y Haber al mismo tiempo.';
+          errorMessageContainer.appendChild(errorMessage);
+          return;
+      }
 
-    const codigoCuenta = document.getElementById("codigo_cuenta").value;
-    const codigoCuentaText =
-      document.getElementById("codigo_cuenta").selectedOptions[0].text;
-    const debe = debeInput.value || "0.00";
-    const haber = haberInput.value || "0.00";
+      const newRow = document.createElement('tr');
+      newRow.innerHTML = `
+          <td class="px-4 py-2 text-center">
+              <input type="hidden" name="codigo_cuenta[]" value="${codigoCuenta}">
+              ${codigoCuenta}
+          </td>
+          <td class="px-4 py-2 text-center">
+              <input type="hidden" name="debe[]" value="${debe}">
+              $ ${debe}
+          </td>
+          <td class="px-4 py-2 text-center">
+              <input type="hidden" name="haber[]" value="${haber}">
+              $ ${haber}
+          </td>
+          <td class="px-4 py-2 text-center">
+              <button type="button" class="bg-red-500 text-white p-2 rounded hover:bg-red-600 remove-row">Eliminar</button>
+          </td>
+      `;
 
-    // Crear una nueva fila en la tabla
-    const newRow = `<tr>
-                            <td class="border px-4 py-2">${codigoCuentaText}</td>
-                            <td class="border px-4 py-2">${
-                              debe > 0 ? "Debe" : "Haber"
-                            }</td>
-                            <td class="border px-4 py-2">${debe}</td>
-                            <td class="border px-4 py-2">${haber}</td>
-                            <input type="hidden" name="codigo_cuenta" value="${codigoCuenta}">
-                            <input type="hidden" name="debe" value="${debe}">
-                            <input type="hidden" name="haber" value="${haber}">
-                        </tr>`;
+      transaccionesTable.appendChild(newRow);
 
-    // Insertar la fila en el cuerpo de la tabla
-    document
-      .querySelector("#transacciones-table tbody")
-      .insertAdjacentHTML("beforeend", newRow);
+      // Añadir evento para eliminar la fila
+      newRow.querySelector('.remove-row').addEventListener('click', function() {
+          newRow.remove();
+      });
 
-    // Limpiar los inputs
-    debeInput.value = "";
-    haberInput.value = "";
+      // Limpiar los campos de entrada
+      document.getElementById('codigo_cuenta').value = '';
+      document.getElementById('debe').value = '';
+      document.getElementById('haber').value = '';
   });
 </script>
 {% endblock %}
