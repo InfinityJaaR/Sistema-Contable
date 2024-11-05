@@ -197,18 +197,34 @@ def estadoDeCapital(request):
     if request.method == 'POST':
         try:
             reinversion_utilidades = Decimal(request.POST.get('reinversion_utilidades', 0))
-            capital = Capital.objects.latest('id')
             reinversion_monto = (reinversion_utilidades / Decimal(100)) * utilidades
-            nuevo_capital = capital.capital_social + reinversion_monto
-            
-            # Guardar el nuevo capital y reinversión
-            Capital.objects.update_or_create(
-                id=capital.id,
-                defaults={
-                    'reinversion_utilidades': reinversion_monto,
-                    'nuevo_capital': nuevo_capital
-                }
+            resto_utilidades = utilidades - reinversion_monto
+
+            # Calcular el monto total de la transacción
+            monto_total = resto_utilidades + reinversion_monto
+
+            # Crear una nueva transacción para el asiento contable seleccionado
+            transaccion = Transaccion.objects.create(
+                fecha=timezone.now(),
+                descripcion='Actualización de Capital Social',
+                monto_total=monto_total
             )
+
+            # Crear las transacciones de cuenta para cumplir con la partida doble
+            TransaccionCuenta.objects.create(
+                transaccion=transaccion,
+                cuenta=CuentaContable.objects.get(codigo_cuenta='311'),
+                monto=monto_total,
+                tipo='DEBITO'
+            )
+            TransaccionCuenta.objects.create(
+                transaccion=transaccion,
+                cuenta=CuentaContable.objects.get(codigo_cuenta='31'),
+                monto=monto_total,
+                tipo='CREDITO'
+            )
+
+            messages.success(request, 'Capital social actualizado exitosamente.')
             return redirect('estado_de_capital')
         except Exception as e:
             messages.error(request, f'Error al procesar los datos: {e}')
@@ -223,7 +239,7 @@ def estadoDeCapital(request):
     # Definir las cuentas y sus valores
     cuentas = [
         {'nombre': 'Patrimonio Neto', 'debe': '', 'haber': ''},
-        {'nombre': '3.1.1 Capital Social', 'debe': saldo_debe_capital_social, 'haber': saldo_haber_capital_social},
+        {'nombre': '311 Capital Social', 'debe': saldo_debe_capital_social, 'haber': saldo_haber_capital_social},
         {'nombre': '3.1.2 Utilidades retenidas', 'debe': saldo_debe_utilidades_retenidas, 'haber': saldo_haber_utilidades_retenidas},
         {'nombre': '3.1.2.2 Reinversion de utilidades', 'debe': resto_utilidades, 'haber': reinversion_utilidades},
     ]

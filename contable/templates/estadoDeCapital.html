@@ -14,6 +14,17 @@
 <div class="max-w-4xl mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
     <h1 class="text-2xl font-bold mb-6">Estado de Capital</h1>
     
+    <!-- Mostrar mensajes -->
+    {% if messages %}
+        <div class="mb-4">
+            {% for message in messages %}
+                <div class="p-4 mb-4 text-sm {{ message.tags }} rounded-lg" role="alert">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
     <!-- Formulario para seleccionar el asiento contable -->
     <form id="filterForm" method="GET" action="{% url 'estado_de_capital' %}">
         <div class="mb-4">
@@ -60,7 +71,7 @@
 
     <!-- Botones para guardar y cancelar -->
     <div class="mt-4 flex justify-end space-x-4">
-        <button id="saveButton" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-md">
+        <button type="submit" form="utilidadesForm" id="saveButton" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-md">
             Guardar y Actualizar
         </button>
         <a href="{% url 'home' %}" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-md text-center">
@@ -125,5 +136,9 @@
         `;
     });
 
+    document.getElementById('saveButton').addEventListener('click', function() {
+        // Aquí puedes agregar la lógica para guardar el nuevo capital en la base de datos
+        alert('Guardar y Actualizar');
+    });
 </script>
 {% endblock %}
