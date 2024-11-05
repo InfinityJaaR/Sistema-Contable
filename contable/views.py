@@ -94,9 +94,9 @@ def registrarTransaccion(request):
         descripcion = request.POST.get('descripcion')
         periodo_id = request.POST.get('periodo')
         asiento_id = request.POST.get('asiento')
-        cuentas = request.POST.getlist('codigo_cuenta')
-        debes = request.POST.getlist('debe')
-        haberes = request.POST.getlist('haber')
+        cuentas = request.POST.getlist('codigo_cuenta[]')
+        debes = request.POST.getlist('debe[]')
+        haberes = request.POST.getlist('haber[]')
                 
         # Validar que la fecha y la descripción sean proporcionadas
         if not fecha:
@@ -153,16 +153,24 @@ def registrarTransaccion(request):
 
         # Crear Transacciones Cuentas
         for cuenta, debe, haber in zip(cuentas, debes, haberes):
+            cuenta_codigo = cuenta.split(' - ')[0]  # Obtener solo el código de la cuenta
+            try:
+                cuenta_obj = CuentaContable.objects.get(codigo_cuenta=cuenta_codigo)
+            except CuentaContable.DoesNotExist:
+                messages.error(request, f'La cuenta contable con código {cuenta_codigo} no existe.')
+                transaccion.delete()  # Eliminar la transacción creada
+                return redirect('registrar_transaccion')
+            
             if debe:
-                TransaccionCuenta.objects.create(transaccion=transaccion, cuenta_id=cuenta, monto=float(debe), tipo='DEBITO')
+                TransaccionCuenta.objects.create(transaccion=transaccion, cuenta=cuenta_obj, monto=float(debe), tipo='DEBITO')
             if haber:
-                TransaccionCuenta.objects.create(transaccion=transaccion, cuenta_id=cuenta, monto=float(haber), tipo='CREDITO')
+                TransaccionCuenta.objects.create(transaccion=transaccion, cuenta=cuenta_obj, monto=float(haber), tipo='CREDITO')
 
         messages.success(request, 'Transacción guardada exitosamente.')
         return redirect('gestionar_transacciones')  # Redirige a la página anterior
     
     return render(request, 'registrarTransaccion.html', {'cuentas': cuentas, 'periodos': periodos})
-
+    
 @login_required
 def catalogoCuentas(request):
     cuentas = CuentaContable.objects.all().order_by('codigo_cuenta')

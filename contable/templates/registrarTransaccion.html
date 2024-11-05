@@ -78,8 +78,7 @@
     <!-- Código de cuenta (lista desplegable)-->
     <div class="mb-4">
       <label for="codigo_cuenta" class="block text-gray-700">Código de Cuenta:</label>
-      <select id="codigo_cuenta" name="codigo_cuenta" required class="w-full p-2 border border-gray-300 rounded-md">
-        <option value="">Seleccione un código de cuenta</option>
+      <select id="codigo_cuenta" name="codigo_cuenta" class="w-full p-2 border border-gray-300 rounded-md">
         {% for cuenta in cuentas %}
         <option value="{{ cuenta.codigo_cuenta }} - {{ cuenta.nombre_cuenta }}">
           {{ cuenta.codigo_cuenta }} - {{ cuenta.nombre_cuenta }}
@@ -209,13 +208,14 @@
       // Validar que no haya datos en ambos campos al mismo tiempo
       const errorMessageContainer = document.getElementById('js-error-messages');
       errorMessageContainer.innerHTML = '';
+
       if (!codigoCuenta) {
-        const errorMessage = document.createElement('p');
-        errorMessage.className = 'bg-red-100 text-red-700 p-4 mb-4 text-sm rounded-lg';
-        errorMessage.textContent = 'Debe seleccionar un código de cuenta.';
-        errorMessageContainer.appendChild(errorMessage);
-        return;
-    }
+          const errorMessage = document.createElement('p');
+          errorMessage.className = 'bg-red-100 text-red-700 p-4 mb-4 text-sm rounded-lg';
+          errorMessage.textContent = 'Debe seleccionar un código de cuenta.';
+          errorMessageContainer.appendChild(errorMessage);
+          return;
+      }
 
       if (debe && haber) {
           const errorMessage = document.createElement('p');
@@ -225,21 +225,25 @@
           return;
       }
 
+      // Si uno de los campos está vacío, poner 0
+      const debeValue = debe || '0';
+      const haberValue = haber || '0';
+
       const newRow = document.createElement('tr');
       newRow.innerHTML = `
-          <td class="px-4 py-2 text-center">
+          <td class="px-4 py-2">
               <input type="hidden" name="codigo_cuenta[]" value="${codigoCuenta}">
               ${codigoCuenta}
           </td>
-          <td class="px-4 py-2 text-center">
-              <input type="hidden" name="debe[]" value="${debe}">
-              $ ${debe}
+          <td class="px-4 py-2">
+              <input type="hidden" name="debe[]" value="${debeValue}">
+              $ ${debeValue}
           </td>
-          <td class="px-4 py-2 text-center">
-              <input type="hidden" name="haber[]" value="${haber}">
-              $ ${haber}
+          <td class="px-4 py-2">
+              <input type="hidden" name="haber[]" value="${haberValue}">
+              $ ${haberValue}
           </td>
-          <td class="px-4 py-2 text-center">
+          <td class="px-4 py-2">
               <button type="button" class="bg-red-500 text-white p-2 rounded hover:bg-red-600 remove-row">Eliminar</button>
           </td>
       `;
@@ -255,6 +259,19 @@
       document.getElementById('codigo_cuenta').value = '';
       document.getElementById('debe').value = '';
       document.getElementById('haber').value = '';
+  });
+
+  document.querySelector('form').addEventListener('submit', function(event) {
+      const filas = document.querySelectorAll('#transacciones-table tbody tr');
+      if (filas.length < 2) {
+          event.preventDefault();
+          const errorMessageContainer = document.getElementById('js-error-messages');
+          errorMessageContainer.innerHTML = '';
+          const errorMessage = document.createElement('p');
+          errorMessage.className = 'bg-red-100 text-red-700 p-4 mb-4 text-sm rounded-lg';
+          errorMessage.textContent = 'Debe haber al menos dos cuentas en la transacción.';
+          errorMessageContainer.appendChild(errorMessage);
+      }
   });
 </script>
 {% endblock %}
