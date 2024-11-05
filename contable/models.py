@@ -45,6 +45,7 @@ class EstadoFinanciero(models.Model):
 class CuentaContable(models.Model):
     nombre_cuenta = models.CharField(max_length=100)
     codigo_cuenta = models.CharField(max_length=10)
+    no_seleccionable = models.BooleanField(default=False)
     #tipo = models.CharField(max_length=10, choices=[('DEBITO', 'Débito'), ('CREDITO', 'Crédito')])
     tipo = models.CharField(max_length=50, choices=[
         ('ACTIVO', 'Activo'), 
