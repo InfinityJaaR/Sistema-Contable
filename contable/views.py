@@ -353,6 +353,7 @@ def estadoResultados(request):
 
     context = {
         'asientos': asientos,
+        'periodo': periodo,
         'periodos': periodos,
         'cuentas': cuentas_con_valores,
         'total_debe': total_debe,
@@ -373,11 +374,11 @@ def guardar_resultado(request):
             # Obtener o crear un nuevo asiento para el registro
             if asiento_id:
                 asiento_original = AsientoContable.objects.get(id=asiento_id)
-                asiento_cierre = AsientoContable.objects.create(
-                    fecha=timezone.now(),
-                    descripcion=f"Cierre de resultados del asiento {asiento_id}",
-                    periodo=asiento_original.periodo
-                )
+                # asiento_cierre = AsientoContable.objects.create(
+                #     fecha=timezone.now(),
+                #     descripcion=f"Cierre de resultados del asiento {asiento_id}",
+                #     periodo=asiento_original.periodo
+                # )
             else:
                 messages.error(request, 'No se ha seleccionado un asiento contable.')
                 return redirect('estadoResultados')
@@ -387,7 +388,7 @@ def guardar_resultado(request):
 
             # Crear la transacción
             transaccion = Transaccion.objects.create(
-                asiento=asiento_cierre,
+                asiento=asiento_original,
                 fecha=timezone.now(),
                 descripcion="Registro de utilidad o pérdida",
                 monto_total=abs(utilidad_bruta_perdida)
@@ -412,7 +413,7 @@ def guardar_resultado(request):
             messages.success(request, 'El resultado ha sido guardado exitosamente en la cuenta de Pérdidas y Ganancias.')
 
         except CuentaContable.DoesNotExist:
-            messages.error(request, 'La cuenta de Pérdidas y Ganancias (71) no existe.')
+            messages.error(request, 'La cuenta de Pérdidas y Ganancias no existe.')
         except Exception as e:
             messages.error(request, f'Error al guardar el resultado: {str(e)}')
 

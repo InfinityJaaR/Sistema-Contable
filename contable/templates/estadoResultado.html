@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Estado de Resultado</title>
+    <link rel="icon" href="{% static 'img/logo2.png' %}" type="image/jpeg">
     <link rel="stylesheet" href="{% static 'css/estado-resultado.css' %}">
 </head>
 {% endblock %}
@@ -36,6 +37,7 @@
                     {% endfor %}
                 </select>
             </div>
+            {% if periodo %}
             <div class="periodo-select">
                 <label class="select-label">Asiento Contable</label>
                 <select class="estado-control" name="asiento_id" onchange="this.form.submit()">
@@ -45,6 +47,7 @@
                     {% endfor %}
                 </select>
             </div>
+            {% endif %}
         </form>
         <table class="table">
             <thead>
