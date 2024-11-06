@@ -474,40 +474,58 @@ def eliminarProducto(request, producto_id):
 
 @login_required
 def balanceGeneral(request):
-    # Obtener el periodo contable seleccionado, si se especifica
+    # Obtener el periodo contable y el asiento contable seleccionados, si se especifican
     periodo_id = request.GET.get('periodo_id')
-    periodo = get_object_or_404(PeriodoContable, id=periodo_id) if periodo_id else None
-
-    # Obtener todos los periodos contables para el selector
+    asiento_id = request.GET.get('asiento_id')
+    
+    # Obtener todos los períodos contables para el selector de períodos
     periodos = PeriodoContable.objects.all().order_by('fecha_inicio')
+    
+    # Si no se selecciona ningún período, no se muestran cuentas ni asientos
+    if not periodo_id:
+        context = {
+            'periodos': periodos,
+            'cuentas_activo': [],
+            'cuentas_pasivo': [],
+            'cuentas_patrimonio': [],
+            'total_debe': 0,
+            'total_haber': 0,
+            'asientos': [],
+        }
+        return render(request, 'balanceGeneral.html', context)
 
-    # Filtrar cuentas por tipo y calcular los totales de activo, pasivo y patrimonio, solo para el período seleccionado
+    # Obtener el período seleccionado y los asientos relacionados con él
+    periodo = get_object_or_404(PeriodoContable, id=periodo_id)
+    asientos = AsientoContable.objects.filter(periodo=periodo).order_by('fecha')
+
+    # Filtrar por asiento específico si se selecciona, o usar todos los asientos del período
+    if asiento_id:
+        asientos = asientos.filter(id=asiento_id)
+
+    # Filtrar cuentas por tipo y calcular los totales de debe y haber solo para el período y asientos seleccionados
     cuentas_activo = CuentaContable.objects.filter(
         tipo='ACTIVO',
-        transaccioncuenta__transaccion__asiento__periodo=periodo  # Filtrar por el período contable
+        transaccioncuenta__transaccion__asiento__in=asientos
     ).order_by('codigo_cuenta').annotate(
         debe=Sum('transaccioncuenta__monto', filter=Q(transaccioncuenta__tipo='DEBITO')),
         haber=Sum('transaccioncuenta__monto', filter=Q(transaccioncuenta__tipo='CREDITO'))
     )
     cuentas_pasivo = CuentaContable.objects.filter(
         tipo='PASIVO',
-        transaccioncuenta__transaccion__asiento__periodo=periodo  # Filtrar por el período contable
+        transaccioncuenta__transaccion__asiento__in=asientos
     ).order_by('codigo_cuenta').annotate(
         debe=Sum('transaccioncuenta__monto', filter=Q(transaccioncuenta__tipo='DEBITO')),
         haber=Sum('transaccioncuenta__monto', filter=Q(transaccioncuenta__tipo='CREDITO'))
     )
+    # Filtrar solo las cuentas de PATRIMONIO específicas
     cuentas_patrimonio = CuentaContable.objects.filter(
         tipo='PATRIMONIO',
-        transaccioncuenta__transaccion__asiento__periodo=periodo  # Filtrar por el período contable
+        nombre_cuenta__in=['Capital social', 'Utilidades retenidas no distribuidas'],
+        transaccioncuenta__transaccion__asiento__in=asientos
     ).order_by('codigo_cuenta').annotate(
         debe=Sum('transaccioncuenta__monto', filter=Q(transaccioncuenta__tipo='DEBITO')),
         haber=Sum('transaccioncuenta__monto', filter=Q(transaccioncuenta__tipo='CREDITO'))
     )
-
-    # Calcular los totales y manejar valores None
-    total_activo = sum((c.debe or 0) - (c.haber or 0) for c in cuentas_activo)
-    total_pasivo = sum((c.haber or 0) - (c.debe or 0) for c in cuentas_pasivo)
-    total_patrimonio = sum((c.haber or 0) - (c.debe or 0) for c in cuentas_patrimonio)
 
     # Calcular los totales generales de debe y haber de todas las cuentas
     total_debe = sum((c.debe or 0) for c in cuentas_activo) + \
@@ -518,20 +536,19 @@ def balanceGeneral(request):
                   sum((c.haber or 0) for c in cuentas_pasivo) + \
                   sum((c.haber or 0) for c in cuentas_patrimonio)
 
-
     context = {
         'periodo': periodo,
         'periodos': periodos,  # Pasamos todos los periodos al contexto
         'cuentas_activo': cuentas_activo,
         'cuentas_pasivo': cuentas_pasivo,
         'cuentas_patrimonio': cuentas_patrimonio,
-        'total_activo': total_activo,
-        'total_pasivo': total_pasivo,
-        'total_patrimonio': total_patrimonio,
-        'total_debe': total_debe, 
-        'total_haber': total_haber 
+        'total_debe': total_debe,  # Total general de debe
+        'total_haber': total_haber,  # Total general de haber
+        'asientos': AsientoContable.objects.filter(periodo=periodo),  # Cargar solo los asientos del periodo seleccionado
+        'asiento_id': asiento_id
     }
     return render(request, 'balanceGeneral.html', context)
+
 
 @login_required
 def verDetallesTransaccion(request, transaccion_id):

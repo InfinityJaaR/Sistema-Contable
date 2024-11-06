@@ -86,7 +86,7 @@
     font-size: 0.9rem;
 }
 
-.periodo-select {
+.periodo-select, .asiento-select {
     margin: 0 0 2rem 0;
     text-align: center;
 }

@@ -12,10 +12,10 @@
 {% endblock %}
 
 {% block content %}
-<div class="flex items-center justify-center min-h-screen">
-    <div class="max-w-lg w-full p-6 bg-white rounded-lg shadow-md">
+<div class="flex items-center justify-center min-h-screen px-4">
+    <div class="w-full max-w-3xl lg:max-w-4xl p-6 bg-white rounded-lg shadow-md">
         <h1 class="text-2xl font-bold mb-6 text-center">Catálogo de Cuentas Contables</h1>
-        <table class="min-w-full bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
+        <table class="w-full bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
             <thead class="bg-blue-500 text-white">
                 <tr>
                     <th class="px-4 py-2 text-left">Código</th>
@@ -27,14 +27,14 @@
                     <tr>
                         <td class="border px-4 py-2">
                             {% if cuenta.cuenta_padre %}
-                                <span style="margin-left: 20px;">{{ cuenta.codigo_cuenta }}</span>
+                                <span class="ml-5">{{ cuenta.codigo_cuenta }}</span>
                             {% else %}
                                 <strong>{{ cuenta.codigo_cuenta }}</strong>
                             {% endif %}
                         </td>
                         <td class="border px-4 py-2">
                             {% if cuenta.cuenta_padre %}
-                                <span style="margin-left: 20px;">{{ cuenta.nombre_cuenta }}</span>
+                                <span class="ml-5">{{ cuenta.nombre_cuenta }}</span>
                             {% else %}
                                 <strong>{{ cuenta.nombre_cuenta }}</strong>
                             {% endif %}
@@ -50,3 +50,4 @@
     </div>
 </div>
 {% endblock %}
+

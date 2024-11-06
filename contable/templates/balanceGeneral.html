@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Balance General</title>
     <link rel="stylesheet" href="{% static 'css/balanceGeneral.css' %}">
+    <link rel="stylesheet" href="{% static 'css/balance-general.css' %}?v=1.0">
+
 </head>
 {% endblock %}
 
@@ -23,7 +25,7 @@
             {% endfor %}
         </div>
         {% endif %}
-        
+
         <form method="get" action="{% url 'balanceGeneral' %}">
             <div class="periodo-select">
                 <label class="select-label">Seleccione el Periodo</label>
@@ -36,7 +38,21 @@
                     {% endfor %}
                 </select>
             </div>
-        </form>        
+        
+            {% if periodo %}
+            <div class="asiento-select">
+                <label class="select-label">Seleccione el Asiento</label>
+                <select class="estado-control" name="asiento_id" onchange="this.form.submit()">
+                    <option value="">Todos los asientos del periodo...</option>
+                    {% for asiento in asientos %}
+                        <option value="{{ asiento.id }}" {% if asiento.id|stringformat:"s" == asiento_id %}selected{% endif %}>
+                            {{ asiento.descripcion }} - {{ asiento.fecha|date:"d/m/Y" }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+        </form>
 
         <table class="table">
             <thead>
