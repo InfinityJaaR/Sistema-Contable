@@ -8,6 +8,9 @@ from django.utils import timezone  # Agregar este import
 from django.db.models import Sum, Q
 from .models import PeriodoContable, CuentaContable, TransaccionCuenta, Transaccion, TransaccionCuenta
 from decimal import Decimal
+from django.http import JsonResponse
+from datetime import datetime
+import json
 # Create your views here.
 
 # def login(request):
@@ -178,96 +181,157 @@ def catalogoCuentas(request):
 
 @login_required
 def estadoDeCapital(request):
-     # Definir la función para obtener el saldo de una cuenta específica
-    def obtener_saldo(codigo_cuenta, asiento_id=None):
-        transacciones = TransaccionCuenta.objects.filter(cuenta__codigo_cuenta=codigo_cuenta)
-        if asiento_id:
-            transacciones = transacciones.filter(transaccion__asiento_id=asiento_id)
-        saldo_debe = transacciones.filter(tipo='DEBITO').aggregate(total=Sum('monto'))['total'] or 0
-        saldo_haber = transacciones.filter(tipo='CREDITO').aggregate(total=Sum('monto'))['total'] or 0
-        return saldo_debe, saldo_haber
+    periodos = PeriodoContable.objects.all()
 
-    # Obtener todos los asientos contables
-    asientos = AsientoContable.objects.all()
-
-    # Obtener el asiento contable seleccionado
-    asiento_id = request.GET.get('asiento_id')
-    if asiento_id:
-        asiento_id = int(asiento_id)
-
-    utilidades = Decimal(0)
-    if asiento_id:
-        # Obtener el saldo de la cuenta de pérdidas y ganancias con codigo_cuenta 71
-        saldo_debe_utilidades, saldo_haber_utilidades = obtener_saldo('71', asiento_id)
-        utilidades = saldo_haber_utilidades - saldo_debe_utilidades
-
-    # Verificar si la solicitud es una solicitud AJAX
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        return JsonResponse({'utilidades': float(utilidades)})
+        periodo_id = request.GET.get('periodo_id')
+        asiento_id = request.GET.get('asiento_id')
 
-    reinversion_utilidades = Decimal(0)
-    nuevo_capital = Decimal(0)
+        if periodo_id and not asiento_id:
+            asientos = AsientoContable.objects.filter(periodo_id=periodo_id)
+            asientos_data = [{'id': asiento.id, 'descripcion': asiento.descripcion} for asiento in asientos]
+            return JsonResponse({'asientos': asientos_data})
+
+        if periodo_id and asiento_id:
+            cuenta71 = TransaccionCuenta.objects.filter(transaccion__asiento_id=asiento_id, cuenta__codigo_cuenta='71').first()
+            cuenta71_data = {
+                'cuenta': f"{cuenta71.cuenta.codigo_cuenta} - {cuenta71.cuenta.nombre_cuenta}",
+                'debe': float(cuenta71.monto) if cuenta71.tipo == 'DEBITO' else 0,
+                'haber': float(cuenta71.monto) if cuenta71.tipo == 'CREDITO' else 0
+            }
+            return JsonResponse({'cuenta71': cuenta71_data})
 
     if request.method == 'POST':
+        data = json.loads(request.body)
+        reinvertir_utilidades = data.get('reinvertir_utilidades', False)
+        porcentaje_reinversion = data.get('porcentaje_reinversion', '0')
+        cuenta71_debe = float(data.get('cuenta71_debe', 0))
+        cuenta71_haber = float(data.get('cuenta71_haber', 0))
+
         try:
-            reinversion_utilidades = Decimal(request.POST.get('reinversion_utilidades', 0))
-            reinversion_monto = (reinversion_utilidades / Decimal(100)) * utilidades
-            resto_utilidades = utilidades - reinversion_monto
+            porcentaje_reinversion = float(porcentaje_reinversion)
+        except ValueError:
+            porcentaje_reinversion = 0
 
-            # Calcular el monto total de la transacción
-            monto_total = resto_utilidades + reinversion_monto
+        patrimonio_data = []
 
-            # Crear una nueva transacción para el asiento contable seleccionado
-            transaccion = Transaccion.objects.create(
-                fecha=timezone.now(),
-                descripcion='Actualización de Capital Social',
-                monto_total=monto_total
-            )
+        # 3 - Patrimonio
+        patrimonio_data.append({
+            'cuenta': '3 - Patrimonio',
+            'debe': None,
+            'haber': None,
+            'highlight': True
+        })
 
-            # Crear las transacciones de cuenta para cumplir con la partida doble
-            TransaccionCuenta.objects.create(
-                transaccion=transaccion,
-                cuenta=CuentaContable.objects.get(codigo_cuenta='311'),
-                monto=monto_total,
-                tipo='DEBITO'
-            )
-            TransaccionCuenta.objects.create(
-                transaccion=transaccion,
-                cuenta=CuentaContable.objects.get(codigo_cuenta='31'),
-                monto=monto_total,
-                tipo='CREDITO'
-            )
+        # 31 - Capital
+        capital = CuentaContable.objects.filter(codigo_cuenta='31').first()
+        if capital:
+            debe = TransaccionCuenta.objects.filter(cuenta=capital, tipo='DEBITO').aggregate(total=Sum('monto'))['total'] or 0
+            haber = TransaccionCuenta.objects.filter(cuenta=capital, tipo='CREDITO').aggregate(total=Sum('monto'))['total'] or 0
+            patrimonio_data.append({
+                'cuenta': f"{capital.codigo_cuenta} - {capital.nombre_cuenta}",
+                'debe': float(debe),
+                'haber': float(haber)
+            })
 
-            messages.success(request, 'Capital social actualizado exitosamente.')
-            return redirect('estado_de_capital')
-        except Exception as e:
-            messages.error(request, f'Error al procesar los datos: {e}')
+        # 312 - Utilidades retenidas
+        patrimonio_data.append({
+            'cuenta': '312 - Utilidades Retenidas',
+            'debe': None,
+            'haber': None,
+            'highlight': True
+        })
 
-    # Obtener los saldos de las cuentas específicas
-    saldo_debe_capital_social, saldo_haber_capital_social = obtener_saldo('311', asiento_id)
-    saldo_debe_utilidades_retenidas, saldo_haber_utilidades_retenidas = obtener_saldo('312', asiento_id)
+        # 3121 - Utilidades No Distribuidas
+        utilidades_no_distribuidas_debe = cuenta71_haber * (1 - porcentaje_reinversion / 100)
+        patrimonio_data.append({
+            'cuenta': '3121 - Utilidades No Distribuidas',
+            'debe': utilidades_no_distribuidas_debe,
+            'haber': 0
+        })
 
-    # Calcular los valores de reinversión de utilidades
-    resto_utilidades = utilidades - reinversion_utilidades
+        # 3122 - Reinversion de utilidades
+        reinversion_haber = 0
+        reinversion_debe = 0
+        if cuenta71_debe > 0:
+            reinversion_debe = cuenta71_debe
+            patrimonio_data.append({
+                'cuenta': '3122 - Reinversion de Utilidades',
+                'debe': reinversion_debe,
+                'haber': 0
+            })
+        elif reinvertir_utilidades:
+            reinversion_haber = cuenta71_haber * (porcentaje_reinversion / 100)
+            patrimonio_data.append({
+                'cuenta': '3122 - Reinversion de Utilidades',
+                'debe': 0,
+                'haber': reinversion_haber
+            })
 
-    # Definir las cuentas y sus valores
-    cuentas = [
-        {'nombre': 'Patrimonio Neto', 'debe': '', 'haber': ''},
-        {'nombre': '311 Capital Social', 'debe': saldo_debe_capital_social, 'haber': saldo_haber_capital_social},
-        {'nombre': '3.1.2 Utilidades retenidas', 'debe': saldo_debe_utilidades_retenidas, 'haber': saldo_haber_utilidades_retenidas},
-        {'nombre': '3.1.2.2 Reinversion de utilidades', 'debe': resto_utilidades, 'haber': reinversion_utilidades},
-    ]
+        # 311 - Capital Social
+        total_haber = sum(item['haber'] for item in patrimonio_data if item['cuenta'] == '31 - Capital') - reinversion_debe + reinversion_haber
+        patrimonio_data.append({
+            'cuenta': '311 - Capital Social',
+            'debe': 0,
+            'haber': total_haber,
+            'highlight': True
+        })
 
-    return render(request, 'estadoDeCapital.html', {
-        'asientos': asientos,
-        'asiento_id': asiento_id,
-        'utilidades': utilidades,
-        'cuentas': cuentas,
-        'reinversion_utilidades': reinversion_utilidades,
-        'nuevo_capital': nuevo_capital,
-        'saldo_debe_capital_social': saldo_debe_capital_social,
-        'saldo_haber_capital_social': saldo_haber_capital_social,
-    })
+        return JsonResponse({'patrimonio': patrimonio_data})
+
+    if request.method == 'PUT':
+        data = json.loads(request.body)
+        try:
+            asiento = AsientoContable.objects.get(id=data.get('asiento_id'))
+        except AsientoContable.DoesNotExist:
+            return JsonResponse({'error': 'El asiento contable seleccionado no existe.'}, status=400)
+
+        fecha = datetime.now()
+        descripcion = f"Estado de Capital al día de {fecha.strftime('%d/%m/%Y')}"
+        capital_social_haber = data.get('capital_social_haber', 0)
+        utilidades_no_distribuidas_haber = data.get('utilidades_no_distribuidas_haber', 0)
+
+        # Crear la transacción
+        transaccion = Transaccion.objects.create(
+            fecha=fecha,
+            descripcion=descripcion,
+            asiento=asiento,
+            monto_total=capital_social_haber + utilidades_no_distribuidas_haber
+        )
+
+        # Guardar 3121 - Utilidades No Distribuidas
+        utilidades_no_distribuidas_debe = data.get('utilidades_no_distribuidas_debe', 0)
+        TransaccionCuenta.objects.create(
+            cuenta=CuentaContable.objects.get(codigo_cuenta='3121'),
+            transaccion=transaccion,
+            tipo='DEBITO',
+            monto=utilidades_no_distribuidas_debe
+        )
+        TransaccionCuenta.objects.create(
+            cuenta=CuentaContable.objects.get(codigo_cuenta='3121'),
+            transaccion=transaccion,
+            tipo='CREDITO',
+            monto=utilidades_no_distribuidas_haber
+        )
+
+        # Guardar 311 - Capital Social
+        capital_social_debe = data.get('capital_social_debe', 0)
+        TransaccionCuenta.objects.create(
+            cuenta=CuentaContable.objects.get(codigo_cuenta='311'),
+            transaccion=transaccion,
+            tipo='DEBITO',
+            monto=capital_social_debe
+        )
+        TransaccionCuenta.objects.create(
+            cuenta=CuentaContable.objects.get(codigo_cuenta='311'),
+            transaccion=transaccion,
+            tipo='CREDITO',
+            monto=capital_social_haber
+        )
+
+        return JsonResponse({'message': 'Datos guardados correctamente.'})
+
+    return render(request, 'estadoDeCapital.html', {'periodos': periodos})
     
 @login_required
 def estadoResultados(request):
