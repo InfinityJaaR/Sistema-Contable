@@ -64,13 +64,13 @@
     <!-- Formulario para reinversión de utilidades -->
     <form id="utilidadesForm" method="POST" action="{% url 'estado_de_capital' %}">
         {% csrf_token %}
-        <div class="mb-4">
+        <div class="mb-4" id="reinversionSection">
             <label for="reinvertir_utilidades" class="block text-gray-700">¿Desea reinvertir las utilidades?</label>
             <input type="checkbox" id="reinvertir_utilidades" name="reinvertir_utilidades" class="w-full p-2 border border-gray-300 rounded-md" disabled>
         </div>
-        <div class="mb-4">
+        <div class="mb-4" id="porcentajeSection">
             <label for="porcentaje_reinversion" class="block text-gray-700">Porcentaje de reinversión (%):</label>
-            <input type="number" id="porcentaje_reinversion" name="porcentaje_reinversion" step="0.01" min="1" max="100" class="w-full p-2 border border-gray-300 rounded-md" disabled>
+            <input type="number" id="porcentaje_reinversion" name="porcentaje_reinversion" step="0.01" min="0" max="100" class="w-full p-2 border border-gray-300 rounded-md" disabled>
         </div>
         <button type="button" id="generateTableButton" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600" disabled>Generar Tabla</button>
     </form>
@@ -146,11 +146,19 @@ document.getElementById('filterButton').addEventListener('click', function() {
             `;
             cuenta71TableBody.appendChild(row);
 
-            // Habilitar los inputs de reinversión y el botón de generar tabla si hay valor en haber
-            if (data.cuenta71.haber > 0) {
+            // Mostrar u ocultar los inputs de reinversión según el valor de debe y haber
+            const reinversionSection = document.getElementById('reinversionSection');
+            const porcentajeSection = document.getElementById('porcentajeSection');
+            if (data.cuenta71.debe > 0) {
+                reinversionSection.style.display = 'none';
+                porcentajeSection.style.display = 'none';
+            } else {
+                reinversionSection.style.display = 'block';
+                porcentajeSection.style.display = 'block';
                 document.getElementById('reinvertir_utilidades').disabled = false;
-                document.getElementById('generateTableButton').disabled = false;
             }
+
+            document.getElementById('generateTableButton').disabled = false;
         });
     }
 });
@@ -168,15 +176,16 @@ document.getElementById('reinvertir_utilidades').addEventListener('change', func
 document.getElementById('generateTableButton').addEventListener('click', function() {
     const reinvertirUtilidades = document.getElementById('reinvertir_utilidades').checked;
     const porcentajeReinversion = document.getElementById('porcentaje_reinversion').value;
+    const cuenta71Debe = parseFloat(document.querySelector('#cuenta71Table tbody tr td:nth-child(2)').textContent.replace('$', ''));
     const cuenta71Haber = parseFloat(document.querySelector('#cuenta71Table tbody tr td:nth-child(3)').textContent.replace('$', ''));
 
     // Validar el porcentaje de reinversión
     const errorMessages = document.getElementById('error-messages');
     errorMessages.innerHTML = '';
-    if (porcentajeReinversion < 1 || porcentajeReinversion > 100) {
+    if (porcentajeReinversion < 0 || porcentajeReinversion > 100) {
         const errorMessage = document.createElement('p');
         errorMessage.className = 'bg-red-100 text-red-700 p-4 mb-4 text-sm rounded-lg';
-        errorMessage.textContent = 'El porcentaje de reinversión debe estar entre 1 y 100.';
+        errorMessage.textContent = 'El porcentaje de reinversión debe estar entre 0 y 100.';
         errorMessages.appendChild(errorMessage);
         return;
     }
@@ -190,6 +199,7 @@ document.getElementById('generateTableButton').addEventListener('click', functio
         body: JSON.stringify({
             reinvertir_utilidades: reinvertirUtilidades,
             porcentaje_reinversion: porcentajeReinversion,
+            cuenta71_debe: cuenta71Debe,
             cuenta71_haber: cuenta71Haber,
             periodo_id: document.getElementById('periodo').value,
             asiento_id: document.getElementById('asiento').value
@@ -240,13 +250,12 @@ document.getElementById('saveButton').addEventListener('click', function() {
     const capitalSocial = patrimonioData.find(item => item.cuenta.startsWith('311'));
 
     fetch(`{% url 'estado_de_capital' %}`, {
-        method: 'POST',
+        method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
         },
         body: JSON.stringify({
-            periodo_id: periodoId,
             asiento_id: asientoId,
             fecha: fecha,
             descripcion: descripcion,

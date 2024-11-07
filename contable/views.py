@@ -10,7 +10,7 @@ from .models import PeriodoContable, CuentaContable, TransaccionCuenta, Transacc
 from decimal import Decimal
 from django.http import JsonResponse
 from datetime import datetime
-
+import json
 # Create your views here.
 
 # def login(request):
@@ -202,10 +202,10 @@ def estadoDeCapital(request):
             return JsonResponse({'cuenta71': cuenta71_data})
 
     if request.method == 'POST':
-        import json
         data = json.loads(request.body)
         reinvertir_utilidades = data.get('reinvertir_utilidades', False)
         porcentaje_reinversion = data.get('porcentaje_reinversion', '0')
+        cuenta71_debe = float(data.get('cuenta71_debe', 0))
         cuenta71_haber = float(data.get('cuenta71_haber', 0))
 
         try:
@@ -242,7 +242,7 @@ def estadoDeCapital(request):
             'highlight': True
         })
 
-        # 3121 - Utilidades retenidas no distribuidas
+        # 3121 - Utilidades No Distribuidas
         utilidades_no_distribuidas_debe = cuenta71_haber * (1 - porcentaje_reinversion / 100)
         patrimonio_data.append({
             'cuenta': '3121 - Utilidades No Distribuidas',
@@ -253,19 +253,19 @@ def estadoDeCapital(request):
         # 3122 - Reinversion de utilidades
         reinversion_haber = 0
         reinversion_debe = 0
-        if reinvertir_utilidades:
+        if cuenta71_debe > 0:
+            reinversion_debe = cuenta71_debe
+            patrimonio_data.append({
+                'cuenta': '3122 - Reinversion de Utilidades',
+                'debe': reinversion_debe,
+                'haber': 0
+            })
+        elif reinvertir_utilidades:
             reinversion_haber = cuenta71_haber * (porcentaje_reinversion / 100)
             patrimonio_data.append({
                 'cuenta': '3122 - Reinversion de Utilidades',
                 'debe': 0,
                 'haber': reinversion_haber
-            })
-        else:
-            reinversion_debe = cuenta71_haber
-            patrimonio_data.append({
-                'cuenta': '3122 - Reinversion de Utilidades',
-                'debe': reinversion_debe,
-                'haber': 0
             })
 
         # 311 - Capital Social
@@ -277,12 +277,10 @@ def estadoDeCapital(request):
             'highlight': True
         })
 
-        # Guardar los objetos CuentaTransaccion
-        try:
-            periodo = PeriodoContable.objects.get(id=data.get('periodo_id'))
-        except PeriodoContable.DoesNotExist:
-            return JsonResponse({'error': 'El periodo contable seleccionado no existe.'}, status=400)
+        return JsonResponse({'patrimonio': patrimonio_data})
 
+    if request.method == 'PUT':
+        data = json.loads(request.body)
         try:
             asiento = AsientoContable.objects.get(id=data.get('asiento_id'))
         except AsientoContable.DoesNotExist:
@@ -290,18 +288,19 @@ def estadoDeCapital(request):
 
         fecha = datetime.now()
         descripcion = f"Estado de Capital al día de {fecha.strftime('%d/%m/%Y')}"
+        capital_social_haber = data.get('capital_social_haber', 0)
+        utilidades_no_distribuidas_haber = data.get('utilidades_no_distribuidas_haber', 0)
 
         # Crear la transacción
         transaccion = Transaccion.objects.create(
             fecha=fecha,
             descripcion=descripcion,
-            periodo=periodo,
-            asiento=asiento
+            asiento=asiento,
+            monto_total=capital_social_haber + utilidades_no_distribuidas_haber
         )
 
         # Guardar 3121 - Utilidades No Distribuidas
-        utilidades_no_distribuidas_debe = max(utilidades_no_distribuidas_debe, 0)
-        utilidades_no_distribuidas_haber = 0
+        utilidades_no_distribuidas_debe = data.get('utilidades_no_distribuidas_debe', 0)
         TransaccionCuenta.objects.create(
             cuenta=CuentaContable.objects.get(codigo_cuenta='3121'),
             transaccion=transaccion,
@@ -316,8 +315,7 @@ def estadoDeCapital(request):
         )
 
         # Guardar 311 - Capital Social
-        capital_social_debe = 0
-        capital_social_haber = max(total_haber, 0)
+        capital_social_debe = data.get('capital_social_debe', 0)
         TransaccionCuenta.objects.create(
             cuenta=CuentaContable.objects.get(codigo_cuenta='311'),
             transaccion=transaccion,
@@ -331,7 +329,7 @@ def estadoDeCapital(request):
             monto=capital_social_haber
         )
 
-        return JsonResponse({'patrimonio': patrimonio_data})
+        return JsonResponse({'message': 'Datos guardados correctamente.'})
 
     return render(request, 'estadoDeCapital.html', {'periodos': periodos})
     
