@@ -18,11 +18,13 @@
 {% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
+<div id="messages" class="max-w-4xl mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
     <h1 class="text-2xl font-bold mb-6">Estado de Capital</h1>
 
     <!-- Mostrar mensajes de error -->
     <div id="error-messages" class="mb-4"></div>
+    <!-- Mostrar mensajes de éxito -->
+    <div id="success-messages" class="mb-4"></div>
 
     <!-- Formulario para seleccionar periodo y asiento -->
     <form id="filterForm" method="POST" action="{% url 'estado_de_capital' %}">
@@ -97,6 +99,7 @@
         <button type="button" id="cancelButton" class="bg-red-500 text-white p-2 rounded hover:bg-red-600 w-full">Cancelar</button>
     </div>
 </div>
+<a href="#messages" class="fixed bottom-4 right-4 bg-blue-500 text-white p-2 rounded-full shadow-lg hover:bg-blue-600">↑</a>
 {% endblock %}
 
 {% block scripts %}
@@ -267,7 +270,14 @@ document.getElementById('saveButton').addEventListener('click', function() {
     })
     .then(response => response.json())
     .then(data => {
-        alert('Datos guardados correctamente.');
+        const successMessages = document.getElementById('success-messages');
+        successMessages.innerHTML = '<p class="bg-green-100 text-green-700 p-4 mb-4 text-sm rounded-lg">Datos guardados correctamente.</p>';
+        window.location.href = "#messages";
+    })
+    .catch(error => {
+        const errorMessages = document.getElementById('error-messages');
+        errorMessages.innerHTML = '<p class="bg-red-100 text-red-700 p-4 mb-4 text-sm rounded-lg">Error al guardar los datos.</p>';
+        window.location.href = "#messages";
     });
 });
 
