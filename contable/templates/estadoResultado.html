@@ -112,7 +112,7 @@
                 {% csrf_token %}
                 <div class="resultado-box">
                     <span class="resultado-label">Utilidad Bruta o Pérdida:</span>
-                    <span class="resultado-valor {% if utilidad_bruta_perdida < 0 %}text-negative{% else %}text-positive{% endif %}" id="resultadoValor">
+                    <span class="resultado-valor {% if utilidad_bruta_perdida < 0 %}text-negative{% else %}text-positive{% endif %} no-wrap" id="resultadoValor">
                         $ {{ utilidad_bruta_perdida|floatformat:2 }}
                     </span>
                     <input type="hidden" name="utilidad_bruta_perdida" value="{{ utilidad_bruta_perdida }}">

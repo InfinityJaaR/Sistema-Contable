@@ -171,3 +171,7 @@
 .btn-guardar:hover {
     background-color: #2563eb;
 }
+
+.no-wrap {
+    white-space: nowrap;
+}
