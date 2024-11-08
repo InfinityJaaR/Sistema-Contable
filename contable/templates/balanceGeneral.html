@@ -160,4 +160,32 @@
         </table>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const periodoSelect = document.querySelector('select[name="periodo_id"]');
+    const asientoSelect = document.querySelector('select[name="asiento_id"]');
+
+    periodoSelect.addEventListener('change', function() {
+        // Limpiar el selector de asientos
+        asientoSelect.innerHTML = '<option value="">Todos los asientos del periodo...</option>';
+        
+        if (this.value) {
+            fetch(`?periodo_id=${this.value}`)
+                .then(response => response.text())
+                .then(html => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const newAsientoSelect = doc.querySelector('select[name="asiento_id"]');
+                    if (newAsientoSelect) {
+                        asientoSelect.innerHTML = newAsientoSelect.innerHTML;
+                    }
+                });
+        }
+        // Enviar el formulario después de actualizar los asientos
+        this.form.submit();
+    });
+});
+</script>
+
 {% endblock %}
