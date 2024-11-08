@@ -245,11 +245,11 @@ def estadoDeCapital(request):
         })
 
         # 3121 - Utilidades No Distribuidas
-        utilidades_no_distribuidas_debe = cuenta71_haber * (1 - porcentaje_reinversion / 100)
+        utilidades_no_distribuidas_haber = cuenta71_haber * (1 - porcentaje_reinversion / 100)
         patrimonio_data.append({
             'cuenta': '3121 - Utilidades No Distribuidas',
-            'debe': utilidades_no_distribuidas_debe,
-            'haber': 0
+            'debe': 0,
+            'haber': utilidades_no_distribuidas_haber
         })
 
         # 3122 - Reinversion de utilidades
@@ -302,13 +302,7 @@ def estadoDeCapital(request):
         )
 
         # Guardar 3121 - Utilidades No Distribuidas
-        utilidades_no_distribuidas_debe = data.get('utilidades_no_distribuidas_debe', 0)
-        TransaccionCuenta.objects.create(
-            cuenta=CuentaContable.objects.get(codigo_cuenta='3121'),
-            transaccion=transaccion,
-            tipo='DEBITO',
-            monto=utilidades_no_distribuidas_debe
-        )
+        utilidades_no_distribuidas_haber = data.get('utilidades_no_distribuidas_haber', 0)
         TransaccionCuenta.objects.create(
             cuenta=CuentaContable.objects.get(codigo_cuenta='3121'),
             transaccion=transaccion,
@@ -541,62 +535,84 @@ def eliminarProducto(request, producto_id):
 
 @login_required
 def balanceGeneral(request):
-    # Obtener el periodo contable y el asiento contable seleccionados, si se especifican
-    periodo_id = request.GET.get('periodo_id')
-    asiento_id = request.GET.get('asiento_id')
-    
-    # Obtener todos los períodos contables para el selector de períodos
-    periodos = PeriodoContable.objects.all().order_by('fecha_inicio')
-    
-    # Si no se selecciona ningún período, no se muestran cuentas ni asientos
-    if not periodo_id:
+    try:
+        periodo_id = request.GET.get('periodo_id')
+        asiento_id = request.GET.get('asiento_id')
+        periodos = PeriodoContable.objects.all().order_by('fecha_inicio')
+
+        if not periodo_id:
+            context = {
+                'periodos': periodos,
+                'cuentas': [],
+                'total_debe': 0,
+                'total_haber': 0,
+                'asientos': [],
+            }
+            return render(request, 'balanceGeneral.html', context)
+
+        periodo = get_object_or_404(PeriodoContable, id=periodo_id)
+        asientos = AsientoContable.objects.filter(periodo=periodo).order_by('fecha')
+
+        if asiento_id:
+            asientos = asientos.filter(id=asiento_id)
+
+        # Modificar la consulta para usar valores decimales explícitos
+        cuentas = CuentaContable.objects.filter(
+            transaccioncuenta__transaccion__asiento__in=asientos
+        ).order_by('codigo_cuenta').annotate(
+            debe=Coalesce(
+                Sum('transaccioncuenta__monto', 
+                    filter=Q(transaccioncuenta__tipo='DEBITO'),
+                    output_field=DecimalField(max_digits=19, decimal_places=2)
+                ),
+                Value(0, output_field=DecimalField(max_digits=19, decimal_places=2))
+            ),
+            haber=Coalesce(
+                Sum('transaccioncuenta__monto',
+                    filter=Q(transaccioncuenta__tipo='CREDITO'),
+                    output_field=DecimalField(max_digits=19, decimal_places=2)
+                ),
+                Value(0, output_field=DecimalField(max_digits=19, decimal_places=2))
+            )
+        ).annotate(
+            saldo=F('debe') - F('haber')
+        ).filter(
+            Q(tipo='ACTIVO') | 
+            Q(tipo='PASIVO') | 
+            Q(tipo='PATRIMONIO', nombre_cuenta__in=['Capital social', 'Utilidades retenidas no distribuidas'])
+        ).distinct()
+
+        # Convertir los valores a Decimal para cálculos precisos
+        total_debe = Decimal('0')
+        total_haber = Decimal('0')
+
+        for cuenta in cuentas:
+            cuenta.saldo = Decimal(str(cuenta.saldo))
+            cuenta.saldo_abs = abs(cuenta.saldo)
+            if cuenta.saldo > 0:
+                total_debe += cuenta.saldo
+            else:
+                total_haber += abs(cuenta.saldo)
+
         context = {
+            'periodo': periodo,
             'periodos': periodos,
-            'cuentas': [],
-            'total_debe': 0,
-            'total_haber': 0,
-            'asientos': [],
+            'cuentas': cuentas,
+            'total_debe': total_debe,
+            'total_haber': total_haber,
+            'asientos': asientos,
+            'asiento_id': asiento_id
         }
         return render(request, 'balanceGeneral.html', context)
 
-    # Obtener el período seleccionado y los asientos relacionados con él
-    periodo = get_object_or_404(PeriodoContable, id=periodo_id)
-    asientos = AsientoContable.objects.filter(periodo=periodo).order_by('fecha')
-
-    # Filtrar por asiento específico si se selecciona, o usar todos los asientos del período
-    if asiento_id:
-        asientos = asientos.filter(id=asiento_id)
-
-    # Filtrar cuentas por tipo y calcular el saldo neto (debe - haber)
-    cuentas = CuentaContable.objects.filter(
-        transaccioncuenta__transaccion__asiento__in=asientos
-    ).order_by('codigo_cuenta').annotate(
-        debe=Coalesce(Sum('transaccioncuenta__monto', filter=Q(transaccioncuenta__tipo='DEBITO')), 0, output_field=DecimalField()),
-        haber=Coalesce(Sum('transaccioncuenta__monto', filter=Q(transaccioncuenta__tipo='CREDITO')), 0, output_field=DecimalField()),
-    ).annotate(
-        saldo=Cast(F('debe') - F('haber'), output_field=DecimalField())
-    ).filter(
-        Q(tipo='ACTIVO') | Q(tipo='PASIVO') | Q(tipo='PATRIMONIO', nombre_cuenta__in=['Capital social', 'Utilidades retenidas no distribuidas'])
-    )
-
-    # Calcular los totales generales de debe y haber de todas las cuentas
-    total_debe = sum(c.saldo for c in cuentas if c.saldo > 0)
-    total_haber = sum(abs(c.saldo) for c in cuentas if c.saldo < 0)
-
-    # Agregar valores absolutos al contexto
-    for cuenta in cuentas:
-        cuenta.saldo_abs = abs(cuenta.saldo)
-
-    context = {
-        'periodo': periodo,
-        'periodos': periodos,  # Pasamos todos los periodos al contexto
-        'cuentas': cuentas,  # Todas las cuentas filtradas y totalizadas
-        'total_debe': total_debe,  # Total general de debe
-        'total_haber': total_haber,  # Total general de haber
-        'asientos': asientos,  # Cargar solo los asientos del periodo seleccionado
-        'asiento_id': asiento_id
-    }
-    return render(request, 'balanceGeneral.html', context)
+    except Exception as e:
+        # Agregar logging para debug en producción
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error en balanceGeneral: {str(e)}")
+        
+        messages.error(request, "Ha ocurrido un error al procesar el balance general.")
+        return redirect('home')
 
 @login_required
 def verDetallesTransaccion(request, transaccion_id):
