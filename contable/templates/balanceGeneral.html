@@ -1,5 +1,7 @@
+<!-- balance_general.html -->
 {% extends 'nav.html' %}
 {% load static %}
+
 {% block head %}
 <head>
     <meta charset="UTF-8">
@@ -8,7 +10,6 @@
     <link rel="icon" href="{% static 'img/logo2.png' %}" type="image/jpeg">
     <link rel="stylesheet" href="{% static 'css/balanceGeneral.css' %}">
     <link rel="stylesheet" href="{% static 'css/balance-general.css' %}?v=1.0">
-
 </head>
 {% endblock %}
 
@@ -27,9 +28,10 @@
         </div>
         {% endif %}
 
+        <!-- Selector de Período Contable -->
         <form method="get" action="{% url 'balanceGeneral' %}">
             <div class="periodo-select">
-                <label class="select-label">Seleccione el Periodo</label>
+                <label class="select-label">Seleccione el Período</label>
                 <select class="estado-control" name="periodo_id" onchange="this.form.submit()">
                     <option value="">Seleccione un periodo contable...</option>
                     {% for p in periodos %}
@@ -39,7 +41,8 @@
                     {% endfor %}
                 </select>
             </div>
-        
+            
+            <!-- Selector de Asiento Contable -->
             {% if periodo %}
             <div class="asiento-select">
                 <label class="select-label">Seleccione el Asiento</label>
@@ -55,6 +58,7 @@
             {% endif %}
         </form>
 
+        <!-- Tabla del Balance General -->
         <table class="table">
             <thead>
                 <tr>
@@ -68,43 +72,89 @@
                 <tr class="section-header">
                     <td colspan="3"><strong>Activo</strong></td>
                 </tr>
-                {% for cuenta in cuentas_activo %}
+                {% for cuenta in cuentas %}
+                {% if cuenta.tipo == 'ACTIVO' %}
                 <tr>
                     <td>{{ cuenta.codigo_cuenta }} - {{ cuenta.nombre_cuenta }}</td>
-                    <td class="text-right">{% if cuenta.debe %}$ {{ cuenta.debe|floatformat:2 }}{% else %} - {% endif %}</td>
-                    <td class="text-right">{% if cuenta.haber %}$ {{ cuenta.haber|floatformat:2 }}{% else %} - {% endif %}</td>
+                    <td class="text-right">
+                        {% if cuenta.saldo > 0 %}
+                            $ {{ cuenta.saldo_abs|floatformat:2 }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="text-right">
+                        {% if cuenta.saldo < 0 %}
+                            $ {{ cuenta.saldo_abs|floatformat:2 }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
                 </tr>
+                {% endif %}
                 {% endfor %}
-                
+
                 <!-- Pasivo -->
                 <tr class="section-header">
                     <td colspan="3"><strong>Pasivo</strong></td>
                 </tr>
-                {% for cuenta in cuentas_pasivo %}
+                {% for cuenta in cuentas %}
+                {% if cuenta.tipo == 'PASIVO' %}
                 <tr>
                     <td>{{ cuenta.codigo_cuenta }} - {{ cuenta.nombre_cuenta }}</td>
-                    <td class="text-right">{% if cuenta.debe %}$ {{ cuenta.debe|floatformat:2 }}{% else %} - {% endif %}</td>
-                    <td class="text-right">{% if cuenta.haber %}$ {{ cuenta.haber|floatformat:2 }}{% else %} - {% endif %}</td>
+                    <td class="text-right">
+                        {% if cuenta.saldo > 0 %}
+                            $ {{ cuenta.saldo_abs|floatformat:2 }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="text-right">
+                        {% if cuenta.saldo < 0 %}
+                            $ {{ cuenta.saldo_abs|floatformat:2 }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
                 </tr>
+                {% endif %}
                 {% endfor %}
 
                 <!-- Patrimonio -->
                 <tr class="section-header">
                     <td colspan="3"><strong>Patrimonio</strong></td>
                 </tr>
-                {% for cuenta in cuentas_patrimonio %}
+                {% for cuenta in cuentas %}
+                {% if cuenta.tipo == 'PATRIMONIO' %}
                 <tr>
                     <td>{{ cuenta.codigo_cuenta }} - {{ cuenta.nombre_cuenta }}</td>
-                    <td class="text-right">{% if cuenta.debe %}$ {{ cuenta.debe|floatformat:2 }}{% else %} - {% endif %}</td>
-                    <td class="text-right">{% if cuenta.haber %}$ {{ cuenta.haber|floatformat:2 }}{% else %} - {% endif %}</td>
+                    <td class="text-right">
+                        {% if cuenta.saldo > 0 %}
+                            $ {{ cuenta.saldo_abs|floatformat:2 }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="text-right">
+                        {% if cuenta.saldo < 0 %}
+                            $ {{ cuenta.saldo_abs|floatformat:2 }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
                 </tr>
+                {% endif %}
                 {% endfor %}
-                
+
                 <!-- Totales -->
                 <tr class="section-header">
                     <td><strong>Total</strong></td>
-                    <td class="text-right"><strong>$ {{ total_debe|floatformat:2 }}</strong></td>
-                    <td class="text-right"><strong>$ {{ total_haber|floatformat:2 }}</strong></td>
+                    <td class="text-right">
+                        <strong>$ {{ total_debe|floatformat:2 }}</strong>
+                    </td>
+                    <td class="text-right">
+                        <strong>$ {{ total_haber|floatformat:2 }}</strong>
+                    </td>
                 </tr>
             </tbody>
         </table>

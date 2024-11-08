@@ -5,12 +5,14 @@ from .models import *
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.utils import timezone  # Agregar este import
-from django.db.models import Sum, Q
-from .models import PeriodoContable, CuentaContable, TransaccionCuenta, Transaccion, TransaccionCuenta
+from django.db.models import Sum, Q, Value, F
+from .models import PeriodoContable, CuentaContable, TransaccionCuenta, Transaccion, TransaccionCuenta, AsientoContable
 from decimal import Decimal
 from django.http import JsonResponse
 from datetime import datetime
 import json
+from django.db.models.functions import Coalesce, Cast
+from django.db.models import DecimalField
 # Create your views here.
 
 # def login(request):
@@ -550,9 +552,7 @@ def balanceGeneral(request):
     if not periodo_id:
         context = {
             'periodos': periodos,
-            'cuentas_activo': [],
-            'cuentas_pasivo': [],
-            'cuentas_patrimonio': [],
+            'cuentas': [],
             'total_debe': 0,
             'total_haber': 0,
             'asientos': [],
@@ -567,53 +567,36 @@ def balanceGeneral(request):
     if asiento_id:
         asientos = asientos.filter(id=asiento_id)
 
-    # Filtrar cuentas por tipo y calcular los totales de debe y haber solo para el período y asientos seleccionados
-    cuentas_activo = CuentaContable.objects.filter(
-        tipo='ACTIVO',
+    # Filtrar cuentas por tipo y calcular el saldo neto (debe - haber)
+    cuentas = CuentaContable.objects.filter(
         transaccioncuenta__transaccion__asiento__in=asientos
     ).order_by('codigo_cuenta').annotate(
-        debe=Sum('transaccioncuenta__monto', filter=Q(transaccioncuenta__tipo='DEBITO')),
-        haber=Sum('transaccioncuenta__monto', filter=Q(transaccioncuenta__tipo='CREDITO'))
-    )
-    cuentas_pasivo = CuentaContable.objects.filter(
-        tipo='PASIVO',
-        transaccioncuenta__transaccion__asiento__in=asientos
-    ).order_by('codigo_cuenta').annotate(
-        debe=Sum('transaccioncuenta__monto', filter=Q(transaccioncuenta__tipo='DEBITO')),
-        haber=Sum('transaccioncuenta__monto', filter=Q(transaccioncuenta__tipo='CREDITO'))
-    )
-    # Filtrar solo las cuentas de PATRIMONIO específicas
-    cuentas_patrimonio = CuentaContable.objects.filter(
-        tipo='PATRIMONIO',
-        nombre_cuenta__in=['Capital social', 'Utilidades retenidas no distribuidas'],
-        transaccioncuenta__transaccion__asiento__in=asientos
-    ).order_by('codigo_cuenta').annotate(
-        debe=Sum('transaccioncuenta__monto', filter=Q(transaccioncuenta__tipo='DEBITO')),
-        haber=Sum('transaccioncuenta__monto', filter=Q(transaccioncuenta__tipo='CREDITO'))
+        debe=Coalesce(Sum('transaccioncuenta__monto', filter=Q(transaccioncuenta__tipo='DEBITO')), 0, output_field=DecimalField()),
+        haber=Coalesce(Sum('transaccioncuenta__monto', filter=Q(transaccioncuenta__tipo='CREDITO')), 0, output_field=DecimalField()),
+    ).annotate(
+        saldo=Cast(F('debe') - F('haber'), output_field=DecimalField())
+    ).filter(
+        Q(tipo='ACTIVO') | Q(tipo='PASIVO') | Q(tipo='PATRIMONIO', nombre_cuenta__in=['Capital social', 'Utilidades retenidas no distribuidas'])
     )
 
     # Calcular los totales generales de debe y haber de todas las cuentas
-    total_debe = sum((c.debe or 0) for c in cuentas_activo) + \
-                 sum((c.debe or 0) for c in cuentas_pasivo) + \
-                 sum((c.debe or 0) for c in cuentas_patrimonio)
+    total_debe = sum(c.saldo for c in cuentas if c.saldo > 0)
+    total_haber = sum(abs(c.saldo) for c in cuentas if c.saldo < 0)
 
-    total_haber = sum((c.haber or 0) for c in cuentas_activo) + \
-                  sum((c.haber or 0) for c in cuentas_pasivo) + \
-                  sum((c.haber or 0) for c in cuentas_patrimonio)
+    # Agregar valores absolutos al contexto
+    for cuenta in cuentas:
+        cuenta.saldo_abs = abs(cuenta.saldo)
 
     context = {
         'periodo': periodo,
         'periodos': periodos,  # Pasamos todos los periodos al contexto
-        'cuentas_activo': cuentas_activo,
-        'cuentas_pasivo': cuentas_pasivo,
-        'cuentas_patrimonio': cuentas_patrimonio,
+        'cuentas': cuentas,  # Todas las cuentas filtradas y totalizadas
         'total_debe': total_debe,  # Total general de debe
         'total_haber': total_haber,  # Total general de haber
-        'asientos': AsientoContable.objects.filter(periodo=periodo),  # Cargar solo los asientos del periodo seleccionado
+        'asientos': asientos,  # Cargar solo los asientos del periodo seleccionado
         'asiento_id': asiento_id
     }
     return render(request, 'balanceGeneral.html', context)
-
 
 @login_required
 def verDetallesTransaccion(request, transaccion_id):
